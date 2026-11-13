@@ -110,7 +110,7 @@ Task: T01-ci-package
 - [x] 구현 완료
 - [x] 검증 통과: 전체42개(서비스19/API13/E2E10), typecheck/lint/build, workflow checker, 실제 Node24 Linux ZIP·HTTP/CSS·503·비밀파일 배제 검사.
 - 첫 Linux 검증은 Windows bind mount 대량 파일 I/O 지연으로 소유 컨테이너만 중지했다. 내부 Linux FS에서 빌드하고 ZIP만 교환하도록 개선한 최종 실행은 성공했다.
-- commit: pending
+- commit: 58340f9
 
 ## Next Task
 P02-azure-delivery/T02-azure-resources.md

@@ -7,13 +7,14 @@
 [P01 자유 게시판](./phases/2026-11-13-free-board/P01-free-board/phase.md)
 
 ## Active Task
-[T04 게시판 화면과 사용 흐름](./phases/2026-11-13-free-board/P01-free-board/T04-board-ui.md)
+없음 — 전체 Task 완료
 
 ## Status
-- T03 완료 (commit: 7d087d4)
-- API 테스트 7개 / 서비스 테스트 7개 / typecheck / lint / build 통과
-- T04 구현 시작 준비 완료
-- done: 3/4
+- completed
+- T04 완료 (commit: d3dcb5f)
+- 서비스 7개 / API 7개 / PC·모바일 E2E 7개 / typecheck / lint / build 통과
+- 개발 서버 재시작 영속성 및 프로덕션 서버 조회 확인
+- done: 4/4
 
 ## Next Step (IMPORTANT)
-T04 청사진을 읽고 게시글 목록·상세·작성·수정·삭제 화면과 반응형 CSS를 구현한 뒤 PC/모바일 브라우저 흐름을 검증한다. 기존 API의 Host 기반 Origin 검증을 유지한다. 한 번에 현재 Task만 실행한다.
+구현 작업 없음. 사용하려면 board에서 npm run dev를 실행하고 http://127.0.0.1:3000에 접속한다. 테스트 서버는 모두 종료되어 있다. 새 기능은 별도 인터뷰·계획으로 시작한다.

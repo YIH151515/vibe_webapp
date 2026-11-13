@@ -136,7 +136,7 @@ Task: T04-board-ui
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: 지정 메시지의 구현 커밋 후 해시 기록
+- commit: d3dcb5f
 
 ## Execution Result
 - 서비스 7개, API 7개, Chromium E2E 7개(PC 1280px / 모바일 390px 및 공통 오류 화면) 총 21개 테스트 통과.

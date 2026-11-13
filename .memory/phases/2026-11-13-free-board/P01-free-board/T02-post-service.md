@@ -119,7 +119,7 @@ Task: T02-post-service
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: 지정 메시지의 구현 커밋 후 해시 기록
+- commit: 5cc246a
 
 ## Execution Result
 - 서비스 테스트 7개 통과: CRUD/영속성, 해시와 비밀값 제외, 입력 경계, query/id, 검색/페이지, 비밀번호 확인 중 삭제, 스키마 버전.

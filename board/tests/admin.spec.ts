@@ -1,0 +1,23 @@
+import {test,expect} from "./helpers/client-fixture";
+import {seedPosts} from "./helpers/sql-fixture";
+import {closeDatabase} from "../src/lib/server/database";
+test.afterAll(()=>closeDatabase());
+for(const width of [1280,390])test("admin moderation "+width,async({page})=>{
+ await page.setViewportSize({width,height:844});
+ const title="관리자 화면 "+width+" "+Date.now();
+ await seedPosts([{title,content:"본문",nickname:"작성자",password:"author-password"}]);
+ await page.goto("/admin");
+ await page.getByLabel("관리자 비밀번호").fill("admin-test-password");
+ await page.getByRole("button",{name:"로그인",exact:true}).click();
+ await expect(page.getByRole("button",{name:"로그아웃",exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"삭제 확인: "+title,exact:true}).click();
+ await expect(page.getByRole("button",{name:"삭제 실행"})).toBeDisabled();
+ await page.getByRole("button",{name:"취소",exact:true}).click();
+ await page.getByRole("button",{name:"삭제 확인: "+title,exact:true}).click();
+ await page.getByLabel("삭제에 동의합니다").check();
+ await page.getByRole("button",{name:"삭제 실행"}).click();
+ await expect(page.getByRole("status")).toContainText("글을 삭제했습니다");
+ await page.getByRole("button",{name:"로그아웃",exact:true}).click();
+ await expect(page.getByRole("button",{name:"로그인",exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+});

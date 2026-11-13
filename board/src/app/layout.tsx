@@ -21,7 +21,7 @@ export default function RootLayout({
           </div>
         </header>
         <main className="main-container" id="main-content">{children}</main>
-        <footer className="site-footer"><span>자유롭게 나누고, 서로를 존중해요.</span><span>자유 게시판</span></footer>
+        <footer className="site-footer"><span>자유롭게 나누고, 서로를 존중해요.</span><Link href="/admin">관리자</Link></footer>
       </body>
     </html>
   );

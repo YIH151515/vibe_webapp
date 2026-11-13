@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 import { MSSQLServerContainer, type StartedMSSQLServerContainer } from "@testcontainers/mssqlserver";
 import { assertTestDatabase, openDatabase, readSqlConfig } from "../src/lib/server/database";
 import { migrateDatabase } from "../src/lib/server/migrations";
+import { hashPassword } from "../src/lib/server/password";
 
 type Mode = "service" | "api" | "e2e" | "all";
 
@@ -51,6 +52,8 @@ export async function runSqlTests(mode: Mode): Promise<number> {
     const available = await readdir(resolve("tests"));
     for (const suite of suites) {
       const env = testEnvironment(container);
+      env.ADMIN_PASSWORD_HASH = await hashPassword("admin-test-password");
+      env.ADMIN_SESSION_SECRET = randomBytes(32).toString("hex");
       assertTestDatabase(env);
       const config = readSqlConfig(env);
       const master = await openDatabase({ ...config, database: "master" });

@@ -15,7 +15,8 @@
     "test:api": "tsx scripts/run-tests.ts api",
     "test:e2e": "tsx scripts/run-tests.ts e2e",
     "test:all": "tsx scripts/run-tests.ts all",
-    "db:migrate": "tsx scripts/migrate.ts"
+    "db:migrate": "tsx scripts/migrate.ts",
+    "admin:password": "tsx scripts/admin-password.ts"
   },
   "dependencies": {
     "mssql": "12.7.14",

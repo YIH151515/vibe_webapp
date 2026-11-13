@@ -181,7 +181,7 @@ test("migration is concurrent-safe, idempotent and refuses a future schema", asy
       await Promise.all([migrateDatabase(f.pool), migrateDatabase(another)]);
     } finally { await another.close(); }
     const versions = (await f.pool.request().query("SELECT version FROM dbo.schema_migrations ORDER BY version")).recordset;
-    assert.deepEqual(versions, [{ version: 1 }, { version: 2 }]);
+    assert.deepEqual(versions, [{ version: 1 }, { version: 2 }, { version: 3 }]);
     const created = await f.service.create({ ...input, title: "보존" });
     await migrateDatabase(f.pool);
     assert.equal((await f.service.get(created.id)).title, "보존");

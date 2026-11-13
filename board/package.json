@@ -1,0 +1,33 @@
+{
+  "name": "free-board",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.13.1 <25"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "start": "next start --hostname 127.0.0.1",
+    "build": "next build",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test:service": "tsx --test tests/service.test.ts",
+    "test:api": "playwright test tests/api.spec.ts",
+    "test:e2e": "playwright test tests/board.spec.ts"
+  },
+  "dependencies": {
+    "next": "16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.6",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

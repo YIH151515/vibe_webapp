@@ -12,10 +12,12 @@ type Mode = "service" | "api" | "e2e" | "all";
 function testEnvironment(container: StartedMSSQLServerContainer): NodeJS.ProcessEnv {
   const env = { ...process.env };
   for (const key of Object.keys(env)) {
-    if (key.startsWith("SQL_") || ["DATABASE_PATH", "APP_TEST_MODE", "APP_ORIGIN"].includes(key)) delete env[key];
+    if (key.startsWith("SQL_") || key.startsWith("ADMIN_") || key.startsWith("RATE_LIMIT_") ||
+      ["DATABASE_PATH", "APP_TEST_MODE", "APP_ORIGIN", "REQUEST_IP_MODE", "LOCAL_CLIENT_IP", "WEBSITE_INSTANCE_ID"].includes(key)) delete env[key];
   }
   return {
     ...env, APP_TEST_MODE: "1", APP_ORIGIN: "http://127.0.0.1:3100",
+    REQUEST_IP_MODE: "test", RATE_LIMIT_KEY_SECRET: randomBytes(32).toString("hex"),
     SQL_SERVER: container.getHost(), SQL_PORT: String(container.getPort()),
     SQL_DATABASE: "board_test_" + randomUUID().replaceAll("-", ""),
     SQL_USER: container.getUsername(), SQL_PASSWORD: container.getPassword(),

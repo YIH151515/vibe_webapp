@@ -11,3 +11,14 @@ export class BoardError extends Error {
     this.name = "BoardError";
   }
 }
+
+export class RateLimitError extends BoardError {
+  readonly retryAfterSeconds: number;
+
+  constructor(retryAfterSeconds: number) {
+    const seconds = Math.max(1, Math.ceil(Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : 1));
+    super("RATE_LIMITED", 429, `요청이 많습니다. ${seconds}초 후 다시 시도해 주세요.`);
+    this.name = "RateLimitError";
+    this.retryAfterSeconds = seconds;
+  }
+}

@@ -30,7 +30,10 @@ export type ErrorCode =
   | "FORBIDDEN"
   | "UNSUPPORTED_MEDIA_TYPE"
   | "INTERNAL_ERROR"
-  | "SERVICE_UNAVAILABLE";
+  | "SERVICE_UNAVAILABLE"
+  | "RATE_LIMITED"
+  | "PAYLOAD_TOO_LARGE"
+  | "UNAUTHENTICATED";
 
 export type ErrorBody = {
   error: {

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test, type APIRequestContext, type APIResponse } from "@playwright/test";
+import { expect, test, type APIRequestContext, type APIResponse } from "./helpers/client-fixture";
 import type { Post, PostInput } from "../src/lib/posts/types";
 import { toErrorResponse } from "../src/lib/server/http";
 import { seedPosts } from "./helpers/sql-fixture";
@@ -191,4 +191,46 @@ test("unexpected errors are sanitized instead of exposing internal values", asyn
   expect(await response.json()).toEqual({
     error: { code: "INTERNAL_ERROR", message: "처리 중 오류가 발생했습니다." },
   });
+});
+
+test("creation limit returns Retry-After without blocking reads", async ({ request }) => {
+  const data = input();
+  for (let i = 0; i < 5; i++) await create(request, { ...data, title: data.title + "-" + i });
+  const response = await request.post("/api/posts", { data });
+  await expectError(response, 429, "RATE_LIMITED");
+  const retry = Number(response.headers()["retry-after"]);
+  expect(retry).toBeGreaterThan(0);
+  expect(retry).toBeLessThanOrEqual(600);
+  const found = await request.get("/api/posts", { params: { q: data.title } });
+  expect(found.status()).toBe(200);
+  expect((await found.json()).total).toBe(5);
+  await expectError(await request.post("/api/posts", { data: { ...data, title: "" } }), 400, "VALIDATION_ERROR");
+});
+
+test("password failure budget is shared across edit and delete, excluding validation and missing posts", async ({ request }) => {
+  const data = input();
+  const post = await create(request, data);
+  const path = `/api/posts/${post.id}`;
+  for (let i = 0; i < 12; i++) {
+    await expectError(await request.patch(path, { data: { ...data, title: "" } }), 400, "VALIDATION_ERROR");
+    await expectError(await request.delete("/api/posts/9007199254740991", { data: { password: data.password } }), 404, "NOT_FOUND");
+  }
+  for (let i = 0; i < 10; i++) {
+    await expectError(await request.delete(path, { data: { password: "wrong-password" } }), 403, "INVALID_PASSWORD");
+  }
+  await expectError(await request.patch(path, { data }), 429, "RATE_LIMITED");
+  expect(await (await request.get(path)).json()).toEqual(post);
+});
+
+test("body limit is byte based and valid maximum escaped text is accepted", async ({ request }) => {
+  const data = input();
+  await expectError(await request.post("/api/posts", { data: { ...data, content: "x".repeat(65536) } }), 413, "PAYLOAD_TOO_LARGE");
+  const value = { ...data, content: "가".repeat(10000) };
+  const escaped = JSON.stringify(value).replace(/[\u0080-\uffff]/g, char => "\\u" + char.charCodeAt(0).toString(16).padStart(4, "0"));
+  expect(Buffer.byteLength(escaped)).toBeLessThan(65537);
+  const response = await request.post("/api/posts", {
+    headers: { "content-type": "application/json" }, data: escaped,
+  });
+  expect(response.status()).toBe(201);
+  expect((await response.json()).content).toHaveLength(10000);
 });

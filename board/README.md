@@ -90,7 +90,31 @@ dbo.posts는 Unicode 본문, 비밀번호 해시, UTC 작성일을 저장합니�
 
 ## API
 
-GET /api/posts?q=&page=1, POST /api/posts, GET/PATCH/DELETE /api/posts/{id}를 제공합니다. 쓰기는 application/json이며 응답은 캐시하지 않습니다. 현재 Origin 검증은 로컬 기준입니다. 공개 HTTPS 대응은 다음 보안 Task에서 적용합니다.
+GET /api/posts?q=&page=1, POST /api/posts, GET/PATCH/DELETE /api/posts/{id}를 제공합니다. 쓰기는 application/json이며 응답은 캐시하지 않습니다. Origin은 APP_ORIGIN의 단일 정규 주소와 비교하며, 내부 HTTP로 전달된 HTTPS 요청도 공개 주소 기준으로 확인합니다.
+
+## 공개 요청 보안과 제한
+
+서버 환경 설정에 APP_ORIGIN, REQUEST_IP_MODE, RATE_LIMIT_KEY_SECRET을 지정합니다. RATE_LIMIT_KEY_SECRET은 임의 32바이트의 64자리 소문자 hex이며 로컬과 Azure에서 같은 값을 사용합니다. 키를 코드·문서·로그에 넣지 않습니다.
+
+- local 모드: LOCAL_CLIENT_IP에 본인의 현재 공개 IP를 설정합니다. 요청의 IP 헤더는 무시합니다.
+- app-service 모드: HTTPS APP_ORIGIN과 WEBSITE_INSTANCE_ID가 필요합니다. App Service가 덮어쓰는 client-ip만 읽으며, x-forwarded-for/x-client-ip를 대체 수단으로 신뢰하지 않습니다. 잘못된 IP나 누락은 503으로 쓰기를 거부합니다.
+- test 모드: 일회용 loopback SQL DB 증명이 있을 때만 허용합니다. 테스트마다 다른 가상 IP를 사용하며 운영에는 설정하지 않습니다.
+
+같은 정규화 IP의 HMAC 식별자를 SQL에 저장하고 다음 고정 윈도우를 적용합니다. 원문 IP와 비밀번호는 저장하지 않습니다.
+
+| 동작 | 한도 |
+| --- | --- |
+| 정상 글 작성 | 10분당 5회 |
+| 글 비밀번호 확인 실패(수정·삭제 공유) | 10분당 10회 |
+| 관리자 로그인 실패 정책 | 15분당 5회 |
+
+관리자 화면·로그인 API는 다음 Task에서 추가합니다. 현재는 관리자용 제한 정책과 검증만 준비되어 있습니다.
+
+입력 검증 실패와 없는 글은 횟수에 넣지 않습니다. 정상 비밀번호 확인도 실패 횟수에 넣지 않습니다. 동시에 진행 중인 시도는 SQL에서 슬롯을 예약하여 병렬 요청으로 한도를 넘지 못하게 합니다. 재시작과 다른 앱 연결에서도 같은 DB의 제한이 유지됩니다. 제한 응답은 429, Retry-After 초와 한국어 대기 안내를 포함합니다. 제한 저장소 장애는 허용으로 전환하지 않고 503으로 처리합니다.
+
+JSON 요청은 Content-Length와 실제 읽은 바이트 모두 64KiB 이하로 제한하며 초과 시 413을 반환합니다. 일반 글의 최대 길이는 그대로 유지합니다. 소멸한 제한 기록은 만료 후 24시간이 지나면 소량씩 정리합니다. 프로세스가 시도 중 중단되면 예약은 현재 윈도우 만료까지 보수적으로 남을 수 있습니다.
+
+설정이 없는 쓰기 요청은 503으로 안내합니다. 실제 Azure 프런트엔드가 client-ip를 덮어쓰는지는 최종 배포 검증에서 확인해야 합니다.
 
 ## 알려진 개발 도구 제한
 

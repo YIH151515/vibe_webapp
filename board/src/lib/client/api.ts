@@ -6,6 +6,7 @@ export class ApiError extends Error {
     public readonly code: ErrorCode,
     message: string,
     public readonly fieldErrors?: Record<string, string>,
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "ApiError";
@@ -31,7 +32,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const body = data as Partial<ErrorBody> | null;
     const error = body?.error;
     if (error && typeof error.message === "string" && typeof error.code === "string") {
-      throw new ApiError(response.status, error.code, error.message, error.fieldErrors);
+      const rawRetry = response.headers.get("retry-after");
+      const retry = rawRetry && /^[1-9][0-9]*$/.test(rawRetry) && Number.isSafeInteger(Number(rawRetry))
+        ? Number(rawRetry) : undefined;
+      throw new ApiError(response.status, error.code, error.message, error.fieldErrors, retry);
     }
     throw new ApiError(response.status, "INTERNAL_ERROR", "처리 중 오류가 발생했습니다.");
   }

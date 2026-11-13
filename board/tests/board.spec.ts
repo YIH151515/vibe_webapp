@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./helpers/client-fixture";
 import { seedPosts } from "./helpers/sql-fixture";
 import { closeDatabase } from "../src/lib/server/database";
 
@@ -134,4 +134,26 @@ test("empty board and non-JSON failures are understandable", async ({ page }) =>
   await page.route("**/api/posts?*", route => route.fulfill({ status: 502, contentType: "text/html", body: "<h1>Proxy error</h1>" }));
   await page.reload();
   await expect(page.locator("main").getByRole("alert")).toContainText("응답을 확인하지 못했습니다");
+});
+
+test("rate limit feedback includes wait time and clears only the password", async ({ page, request }) => {
+  const data = { title: "제한 안내", content: "본문", nickname: "작성자", password };
+  const response = await request.post("/api/posts", { data });
+  expect(response.status()).toBe(201);
+  const { id } = await response.json();
+  await page.goto(`/posts/${id}/edit`);
+  await expect(page.getByLabel(/^제목/)).toHaveValue(data.title);
+  await page.route(`**/api/posts/${id}`, async route => {
+    if (route.request().method() !== "PATCH") return route.continue();
+    await route.fulfill({
+      status: 429, headers: { "Retry-After": "60" },
+      json: { error: { code: "RATE_LIMITED", message: "요청이 많습니다. 60초 후 다시 시도해 주세요." } },
+    });
+  });
+  await page.getByLabel(/^제목/).fill("유지할 제목");
+  await page.getByLabel(/^비밀번호/).fill(password);
+  await page.getByRole("button", { name: "수정 저장" }).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText("60초");
+  await expect(page.getByLabel(/^제목/)).toHaveValue("유지할 제목");
+  await expect(page.getByLabel(/^비밀번호/)).toHaveValue("");
 });

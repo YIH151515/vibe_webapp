@@ -1,19 +1,23 @@
 import type { ErrorBody } from "../posts/types";
-import { BoardError } from "./errors";
+import { BoardError, RateLimitError } from "./errors";
 import { isDatabaseUnavailable } from "./database";
+import { readAppOrigin } from "./request-context";
 
-export function ensureSameOrigin(request: Request): void {
+export function ensureSameOrigin(request: Request, options: { requireOrigin?: boolean } = {}): void {
+  const expected = readAppOrigin();
   const origin = request.headers.get("origin");
-  const url = new URL(request.url);
-  // NextRequest normalizes 127.0.0.1 to localhost. Host preserves the
-  // browser's actual authority; forwarded headers are deliberately ignored.
-  const expectedOrigin = `${url.protocol}//${request.headers.get("host") ?? url.host}`;
-  if (
-    (origin !== null && origin !== expectedOrigin) ||
-    (origin === null && request.headers.get("sec-fetch-site") === "cross-site")
-  ) {
+  const host = request.headers.get("host");
+  if ((host !== null && host.toLowerCase() !== expected.host) ||
+    (origin !== null && origin !== expected.origin) ||
+    (origin === null && (options.requireOrigin || request.headers.get("sec-fetch-site") === "cross-site"))) {
     throw new BoardError("FORBIDDEN", 403, "허용되지 않은 요청입니다.");
   }
+}
+
+const maximumBodyBytes = 64 * 1024;
+
+function tooLarge(): never {
+  throw new BoardError("PAYLOAD_TOO_LARGE", 413, "요청 내용이 너무 큽니다. 64KiB 이하로 보내 주세요.");
 }
 
 export async function readJson(request: Request): Promise<unknown> {
@@ -21,11 +25,35 @@ export async function readJson(request: Request): Promise<unknown> {
   if (mediaType !== "application/json") {
     throw new BoardError("UNSUPPORTED_MEDIA_TYPE", 415, "JSON 형식으로 요청해 주세요.");
   }
-  try {
-    return await request.json();
-  } catch {
-    throw new BoardError("VALIDATION_ERROR", 400, "올바른 JSON을 입력해 주세요.");
+  const length = request.headers.get("content-length");
+  if (length !== null) {
+    if (!/^[0-9]+$/.test(length) || length !== length.trim()) {
+      throw new BoardError("VALIDATION_ERROR", 400, "올바른 요청 길이가 필요합니다.");
+    }
+    if (Number(length) > maximumBodyBytes) tooLarge();
   }
+  const reader = request.body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    if (reader) {
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        bytes += chunk.value.byteLength;
+        if (bytes > maximumBodyBytes) {
+          await reader.cancel().catch(() => undefined);
+          tooLarge();
+        }
+        chunks.push(chunk.value);
+      }
+    }
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks, bytes));
+    return JSON.parse(text);
+  } catch (error) {
+    if (error instanceof BoardError) throw error;
+    throw new BoardError("VALIDATION_ERROR", 400, "올바른 JSON을 입력해 주세요.");
+  } finally { reader?.releaseLock(); }
 }
 
 export function toErrorResponse(error: unknown): Response {
@@ -37,8 +65,9 @@ export function toErrorResponse(error: unknown): Response {
       ? { code: error.code, message: error.message, ...(error.fieldErrors ? { fieldErrors: error.fieldErrors } : {}) }
       : { code: "INTERNAL_ERROR", message: "처리 중 오류가 발생했습니다." },
   };
+  const headers: Record<string, string> = { "Cache-Control": "no-store" };
+  if (error instanceof RateLimitError) headers["Retry-After"] = String(error.retryAfterSeconds);
   return Response.json(body, {
-    status: error instanceof BoardError ? error.status : 500,
-    headers: { "Cache-Control": "no-store" },
+    status: error instanceof BoardError ? error.status : 500, headers,
   });
 }

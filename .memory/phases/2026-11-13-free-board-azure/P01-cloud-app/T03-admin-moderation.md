@@ -123,7 +123,7 @@ Task: T03-admin-moderation
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과: test:all 41개(서비스19/API12/E2E10), typecheck/lint/build, stdin hash 도구.
-- commit: pending
+- commit: 70826b4
 
 ## Next Task
 P02-azure-delivery/T01-ci-package.md

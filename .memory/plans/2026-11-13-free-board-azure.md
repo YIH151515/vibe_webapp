@@ -10,8 +10,8 @@
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | in_progress | SQL 전환·공개 운영 보안·관리자 | [P01](../phases/2026-11-13-free-board-azure/P01-cloud-app/phase.md) |
-| P02 | pending | Linux 패키지·CI·Azure 구축·첫 공개 | [P02](../phases/2026-11-13-free-board-azure/P02-azure-delivery/phase.md) |
+| P01 | completed | SQL 전환·공개 운영 보안·관리자 | [P01](../phases/2026-11-13-free-board-azure/P01-cloud-app/phase.md) |
+| P02 | in_progress | Linux 패키지·CI·Azure 구축·첫 공개 | [P02](../phases/2026-11-13-free-board-azure/P02-azure-delivery/phase.md) |
 
 ## Roadmap
 | 순서 | Task | 결과 |

@@ -75,7 +75,7 @@ Task: T01-app-foundation
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: 아래 지정 메시지의 Git 커밋으로 기록 (해시는 git log에서 확인)
+- commit: bc29538
 
 ## Execution Result
 - Node 24.13.1, Next 16.4.6, React 19.3.1, TypeScript 5.9.3.

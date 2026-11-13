@@ -1,7 +1,7 @@
 # Plan: 자유 게시판
 
 - Date: 2026-11-13
-- Status: ready
+- Status: in_progress
 - Decisions: [확정 설계](../decisions/2026-11-13-free-board.md)
 
 ## Goal
@@ -10,7 +10,7 @@
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | pending | 앱 기반부터 비회원 게시판 완성까지 | [P01](../phases/2026-11-13-free-board/P01-free-board/phase.md) |
+| P01 | in_progress | 앱 기반부터 비회원 게시판 완성까지 | [P01](../phases/2026-11-13-free-board/P01-free-board/phase.md) |
 
 ## Architecture
 - 앱은 `D:/vibeweb/board/`에 배치한다. 기존 스타터킷 파일은 보존한다.

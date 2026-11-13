@@ -1,7 +1,7 @@
 # Plan: 자유 게시판 Azure 공개 운영
 
 - Date: 2026-11-13
-- Status: ready
+- Status: in_progress
 - Decisions: [확정 결정](../decisions/2026-11-13-free-board-azure.md)
 
 ## Goal
@@ -10,7 +10,7 @@
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | pending | SQL 전환·공개 운영 보안·관리자 | [P01](../phases/2026-11-13-free-board-azure/P01-cloud-app/phase.md) |
+| P01 | in_progress | SQL 전환·공개 운영 보안·관리자 | [P01](../phases/2026-11-13-free-board-azure/P01-cloud-app/phase.md) |
 | P02 | pending | Linux 패키지·CI·Azure 구축·첫 공개 | [P02](../phases/2026-11-13-free-board-azure/P02-azure-delivery/phase.md) |
 
 ## Roadmap

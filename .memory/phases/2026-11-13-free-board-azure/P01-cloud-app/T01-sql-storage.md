@@ -137,7 +137,7 @@ Task: T01-sql-storage
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: 구현 커밋 후 해시 기록
+- commit: 047adb0
 
 ## Execution Result
 - Docker Desktop을 Hidden으로 기동했고 Linux 엔진과 공식 SQL Server2022 Developer 이미지를 확인했다.

@@ -16,7 +16,10 @@
     "test:e2e": "tsx scripts/run-tests.ts e2e",
     "test:all": "tsx scripts/run-tests.ts all",
     "db:migrate": "tsx scripts/migrate.ts",
-    "admin:password": "tsx scripts/admin-password.ts"
+    "admin:password": "tsx scripts/admin-password.ts",
+    "build:azure": "node scripts/build-azure.mjs",
+    "package:azure": "node scripts/package-azure.mjs",
+    "verify:azure": "node scripts/verify-azure.mjs"
   },
   "dependencies": {
     "mssql": "12.7.14",
@@ -31,9 +34,11 @@
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "archiver": "7.0.1",
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.6",
     "tsx": "4.23.15",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "yaml": "2.9.1"
   }
 }

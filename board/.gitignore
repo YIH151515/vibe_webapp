@@ -11,3 +11,4 @@
 *.tsbuildinfo
 npm-debug.log*
 /.next-test/
+/.deploy/

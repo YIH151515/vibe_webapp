@@ -1,0 +1,103 @@
+name: Board Azure
+on:
+  push:
+    branches: [main]
+    paths: ['board/**', '.github/workflows/board-azure.yml', '!board/docs/**', '!board/README.md']
+  pull_request:
+    paths: ['board/**', '.github/workflows/board-azure.yml', '!board/docs/**', '!board/README.md']
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    working-directory: board
+    shell: bash
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: board/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:all
+      - run: npm run typecheck && npm run lint && node scripts/check-workflow.mjs
+      - run: npm run build:azure && npm run package:azure && node --test tests/package.test.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: board-release
+          path: |
+            board/.deploy/board.zip
+            board/.deploy/release.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+  deploy:
+    needs: verify
+    if: >-
+      github.ref == 'refs/heads/main' && github.event_name != 'pull_request' &&
+      vars.AZURE_CLIENT_ID != '' && vars.AZURE_TENANT_ID != '' &&
+      vars.AZURE_SUBSCRIPTION_ID != '' && vars.AZURE_WEBAPP_NAME != '' &&
+      vars.AZURE_RESOURCE_GROUP != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: board-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      DEPLOY_COMMIT: ${{ github.sha }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: board-release
+          path: release
+      - name: Check verified artifact
+        working-directory: release
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os
+          with open('release.json') as f: manifest = json.load(f)
+          with open('board.zip', 'rb') as f: digest = hashlib.file_digest(f, 'sha256').hexdigest()
+          assert manifest['sha256'] == digest
+          assert manifest['commit'] == os.environ['DEPLOY_COMMIT']
+          assert manifest['nodeMajor'] == 24
+          PY
+      - uses: Azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - uses: Azure/webapps-deploy@02a81bead70021f5284939794bcec79c271ab383 # v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          resource-group-name: ${{ vars.AZURE_RESOURCE_GROUP }}
+          package: release/board.zip
+      - name: Set version and verify live health
+        working-directory: release
+        run: |
+          az webapp config appsettings set --resource-group "$RESOURCE_GROUP" --name "$WEBAPP_NAME" --settings "APP_VERSION=$DEPLOY_COMMIT" --output none
+          host=$(az webapp show --resource-group "$RESOURCE_GROUP" --name "$WEBAPP_NAME" --query defaultHostName --output tsv)
+          export HEALTH_URL="https://$host/api/health"
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+          for _ in range(60):
+              try:
+                  with urllib.request.urlopen(os.environ['HEALTH_URL'], timeout=10) as r: body = json.load(r)
+                  if body.get('status') == 'ok' and body.get('version') == os.environ['DEPLOY_COMMIT']:
+                      print('Live health and release version verified.'); break
+              except Exception: pass
+              time.sleep(5)
+          else: raise SystemExit('Live health/version verification failed')
+          PY

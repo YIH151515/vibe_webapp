@@ -9,6 +9,13 @@ test.afterAll(() => closeDatabase());
 
 const origin = "http://127.0.0.1:3100";
 
+test("health confirms current SQL schema without exposing configuration", async ({ request }) => {
+  const response = await request.get("/api/health");
+  expect(response.status()).toBe(200);
+  expect(response.headers()["cache-control"]).toBe("no-store");
+  expect(await response.json()).toEqual({ status: "ok", version: process.env.APP_VERSION ?? "local" });
+});
+
 function input(): PostInput {
   return {
     title: `글-${randomUUID()}`, content: "일반 텍스트 본문",

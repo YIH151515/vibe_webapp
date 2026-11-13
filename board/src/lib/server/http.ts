@@ -1,5 +1,6 @@
 import type { ErrorBody } from "../posts/types";
 import { BoardError } from "./errors";
+import { isDatabaseUnavailable } from "./database";
 
 export function ensureSameOrigin(request: Request): void {
   const origin = request.headers.get("origin");
@@ -28,6 +29,9 @@ export async function readJson(request: Request): Promise<unknown> {
 }
 
 export function toErrorResponse(error: unknown): Response {
+  if (isDatabaseUnavailable(error)) {
+    error = new BoardError("SERVICE_UNAVAILABLE", 503, "데이터베이스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+  }
   const body: ErrorBody = {
     error: error instanceof BoardError
       ? { code: error.code, message: error.message, ...(error.fieldErrors ? { fieldErrors: error.fieldErrors } : {}) }

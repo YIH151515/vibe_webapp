@@ -1,0 +1,15 @@
+CREATE TABLE dbo.posts (
+  id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_posts PRIMARY KEY,
+  title NVARCHAR(100) NOT NULL,
+  content NVARCHAR(MAX) NOT NULL,
+  nickname NVARCHAR(20) NOT NULL,
+  password_hash VARCHAR(256) NOT NULL,
+  created_at DATETIME2(3) NOT NULL
+    CONSTRAINT DF_posts_created_at DEFAULT SYSUTCDATETIME(),
+  CONSTRAINT CK_posts_id CHECK (id BETWEEN 1 AND 9007199254740991),
+  CONSTRAINT CK_posts_title CHECK (DATALENGTH(title) / 2 BETWEEN 1 AND 100),
+  CONSTRAINT CK_posts_content CHECK (DATALENGTH(content) / 2 BETWEEN 1 AND 10000),
+  CONSTRAINT CK_posts_nickname CHECK (DATALENGTH(nickname) / 2 BETWEEN 2 AND 20),
+  CONSTRAINT CK_posts_password_hash CHECK (DATALENGTH(password_hash) BETWEEN 1 AND 256)
+);
+CREATE INDEX IX_posts_created_at_id ON dbo.posts(created_at DESC, id DESC);

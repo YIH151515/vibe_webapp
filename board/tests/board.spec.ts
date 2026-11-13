@@ -1,15 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { expect, test, type Page, type APIRequestContext } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { seedPosts } from "./helpers/sql-fixture";
+import { closeDatabase } from "../src/lib/server/database";
+
+test.afterAll(() => closeDatabase());
 
 const password = "browser-password";
-
-async function seed(request: APIRequestContext, title: string, content = "일반 텍스트") {
-  const response = await request.post("/api/posts", {
-    data: { title, content, nickname: "테스트작성자", password },
-  });
-  expect(response.status()).toBe(201);
-  return await response.json() as { id: number; title: string };
-}
 
 async function noOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -83,9 +79,11 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
       }
     });
 
-    test("search, paginate and correct an overflow page without losing the query", async ({ page, request }) => {
+    test("search, paginate and correct an overflow page without losing the query", async ({ page }) => {
       const token = randomUUID();
-      for (let i = 0; i < 21; i++) await seed(request, `${token}-${i}`);
+      await seedPosts(Array.from({ length: 21 }, (_, i) => ({
+        title: `${token}-${i}`, content: "일반 텍스트", nickname: "테스트작성자", password,
+      })));
       await page.goto("/");
       await page.getByRole("searchbox", { name: "제목과 본문 검색" }).fill(token);
       await page.getByRole("button", { name: "검색", exact: true }).click();

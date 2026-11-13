@@ -29,7 +29,8 @@ export type ErrorCode =
   | "NOT_FOUND"
   | "FORBIDDEN"
   | "UNSUPPORTED_MEDIA_TYPE"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "SERVICE_UNAVAILABLE";
 
 export type ErrorBody = {
   error: {

@@ -2,6 +2,10 @@ import { randomUUID } from "node:crypto";
 import { expect, test, type APIRequestContext, type APIResponse } from "@playwright/test";
 import type { Post, PostInput } from "../src/lib/posts/types";
 import { toErrorResponse } from "../src/lib/server/http";
+import { seedPosts } from "./helpers/sql-fixture";
+import { closeDatabase } from "../src/lib/server/database";
+
+test.afterAll(() => closeDatabase());
 
 const origin = "http://127.0.0.1:3100";
 
@@ -153,7 +157,7 @@ test("id and query validation rejects malformed and duplicated parameters", asyn
 test("search pages preserve the query, match literal characters and expose only summaries", async ({ request }) => {
   const token = randomUUID();
   const data = input();
-  for (let i = 0; i < 21; i++) await create(request, { ...data, title: `${token}-${i}` });
+  await seedPosts(Array.from({ length: 21 }, (_, i) => ({ ...data, title: `${token}-${i}` })));
   const firstResponse = await request.get("/api/posts", { params: { q: token, page: "1" } });
   expect(firstResponse.headers()["cache-control"]).toBe("no-store");
   const first = await firstResponse.json();

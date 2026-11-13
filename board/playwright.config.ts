@@ -1,4 +1,7 @@
 import { defineConfig } from "@playwright/test";
+import { assertTestDatabase } from "./src/lib/server/database";
+
+assertTestDatabase(process.env);
 
 export default defineConfig({
   testDir: "./tests",
@@ -12,6 +15,10 @@ export default defineConfig({
     url: "http://127.0.0.1:3100",
     reuseExistingServer: false,
     timeout: 120000,
-    env: { DATABASE_PATH: "./test-results/api-e2e.sqlite" },
+    env: {
+      APP_TEST_MODE: "1", SQL_SERVER: process.env.SQL_SERVER!,
+      SQL_PORT: process.env.SQL_PORT!, SQL_DATABASE: process.env.SQL_DATABASE!,
+      SQL_USER: process.env.SQL_USER!, SQL_PASSWORD: process.env.SQL_PASSWORD!,
+    },
   },
 });

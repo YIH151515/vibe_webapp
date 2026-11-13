@@ -1,20 +1,20 @@
 # Current Context
 
 ## Active Plan
-[자유 게시판](./plans/2026-11-13-free-board.md)
+[자유 게시판 Azure 공개 운영](./plans/2026-11-13-free-board-azure.md)
 
 ## Active Phase
-[P01 자유 게시판](./phases/2026-11-13-free-board/P01-free-board/phase.md)
+[P01 SQL·공개 운영 보안](./phases/2026-11-13-free-board-azure/P01-cloud-app/phase.md)
 
 ## Active Task
-없음 — 전체 Task 완료
+[P01-T01 SQL 저장소와 격리 테스트](./phases/2026-11-13-free-board-azure/P01-cloud-app/T01-sql-storage.md)
 
 ## Status
-- completed
-- T04 완료 (commit: d3dcb5f)
-- 서비스 7개 / API 7개 / PC·모바일 E2E 7개 / typecheck / lint / build 통과
-- 개발 서버 재시작 영속성 및 프로덕션 서버 조회 확인
-- done: 4/4
+- 계획 완료, 구현 시작 전
+- P01-T01 구현 시작 준비 완료
+- done: 0/6
+- 선행 조건: Docker Linux 엔진 기동 필요 (CLI 설치됨, 현재 엔진 연결 실패)
+- 기존 로컬 게시판 계획은 completed 상태로 보존
 
 ## Next Step (IMPORTANT)
-구현 작업 없음. 사용하려면 board에서 npm run dev를 실행하고 http://127.0.0.1:3000에 접속한다. 테스트 서버는 모두 종료되어 있다. 새 기능은 별도 인터뷰·계획으로 시작한다.
+P01-T01 청사진을 읽고 Docker Linux 엔진을 확인한 뒤 board/src/lib/server/database.ts와 posts.ts 및 격리 SQL 테스트를 함께 전환한다. 운영 DB나 기존 SQLite 파일은 변경하지 않는다. 한 번에 현재 Task만 실행한다.

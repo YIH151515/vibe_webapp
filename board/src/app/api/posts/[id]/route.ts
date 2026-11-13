@@ -11,7 +11,7 @@ type ItemContext = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, context: ItemContext): Promise<Response> {
   try {
     const id = parsePostId((await context.params).id);
-    const post = createPostService(getDatabase()).get(id);
+    const post = await createPostService(await getDatabase()).get(id);
     return Response.json(post, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return toErrorResponse(error);
@@ -23,7 +23,7 @@ export async function PATCH(request: Request, context: ItemContext): Promise<Res
     ensureSameOrigin(request);
     const input = parsePostInput(await readJson(request));
     const id = parsePostId((await context.params).id);
-    const post = await createPostService(getDatabase()).update(id, input);
+    const post = await createPostService(await getDatabase()).update(id, input);
     return Response.json(post, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return toErrorResponse(error);
@@ -35,7 +35,7 @@ export async function DELETE(request: Request, context: ItemContext): Promise<Re
     ensureSameOrigin(request);
     const input = parsePasswordInput(await readJson(request));
     const id = parsePostId((await context.params).id);
-    await createPostService(getDatabase()).remove(id, input);
+    await createPostService(await getDatabase()).remove(id, input);
     return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return toErrorResponse(error);

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,7 +12,17 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>): React.JSX.Element {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <a href="#main-content" className="skip-link">본문으로 건너뛰기</a>
+        <header className="site-header">
+          <div className="header-inner">
+            <Link className="brand" href="/"><span className="brand-mark" aria-hidden="true">자</span>자유 게시판</Link>
+            <span className="header-note"><span className="status-dot" />누구에게나 열린 공간</span>
+          </div>
+        </header>
+        <main className="main-container" id="main-content">{children}</main>
+        <footer className="site-footer"><span>자유롭게 나누고, 서로를 존중해요.</span><span>자유 게시판</span></footer>
+      </body>
     </html>
   );
 }

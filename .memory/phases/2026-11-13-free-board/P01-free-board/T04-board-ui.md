@@ -1,6 +1,6 @@
 # Task: T04 게시판 화면과 사용 흐름
 
-## Status: pending
+## Status: done
 
 ## Goal
 PC와 모바일에서 검색·글 작성·조회·비밀번호 수정·삭제를 완료할 수 있는 로컬 게시판을 제공한다.
@@ -108,10 +108,10 @@ deletePost(id:number,password:string): Promise<void>;
 - 완료 시 plan/phase를 completed, current.md Active Task를 없음으로 하고 전체 완료 상태를 기록한다.
 
 ## Acceptance Criteria
-- [ ] PC와 모바일에서 모든 확정 기능이 동작하고 긴 본문에도 가로 스크롤이 없다.
-- [ ] 검색·페이지 URL·비밀번호 오류·404·빈 목록·삭제 확인 흐름을 제공한다.
-- [ ] 평문 비밀번호와 hash가 저장소/URL/조회 UI로 유출되지 않는다.
-- [ ] 최종 검증이 통과하고 실행 안내와 메모리 완료 상태가 일치한다.
+- [x] PC와 모바일에서 모든 확정 기능이 동작하고 긴 본문에도 가로 스크롤이 없다.
+- [x] 검색·페이지 URL·비밀번호 오류·404·빈 목록·삭제 확인 흐름을 제공한다.
+- [x] 평문 비밀번호와 hash가 저장소/URL/조회 UI로 유출되지 않는다.
+- [x] 최종 검증이 통과하고 실행 안내와 메모리 완료 상태가 일치한다.
 
 ## Validation
 - `npx playwright install chromium` — 최초 브라우저 준비. 다운로드 제한 시 승인 절차로 재시도.
@@ -134,9 +134,19 @@ Task: T04-board-ui
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: 지정 메시지의 구현 커밋 후 해시 기록
+
+## Execution Result
+- 서비스 7개, API 7개, Chromium E2E 7개(PC 1280px / 모바일 390px 및 공통 오류 화면) 총 21개 테스트 통과.
+- npm run typecheck / npm run lint / npm run build 모두 종료 코드 0.
+- 일반 텍스트 스크립트 미실행, 긴 본문 줄바꿈, 비밀번호 오류 후 입력 유지와 비밀번호 초기화, 삭제 동의·취소, 페이지 검색어 유지·초과 페이지 보정, 404와 네트워크·비JSON 오류 안내를 확인했다.
+- 비밀번호/hash가 조회 응답·HTML·URL·localStorage/sessionStorage로 노출되지 않음을 확인했다. 사용자 기본 DB는 만들지 않았다.
+- 별도 test-results/restart-* DB로 개발 서버를 실제 종료·재시작한 뒤 동일 글 유지 확인. 같은 DB를 프로덕션 서버에서도 조회하고 PC/모바일 화면을 확인했다. 검증 서버의 3100/3101 포트는 모두 종료했다.
+- 수동 재시작 검증 보조 스크립트와 스크린샷은 Git에서 제외된 test-results 안에만 보관한다. 실행: node test-results/verify-restart.mjs (해당 검증 세션의 임시 보조 도구).
+- 추가 공통 모듈: components/feedback.tsx와 use-post.ts는 로딩·실패·요청 취소 처리를 재사용한다. lib/client/validation.ts는 폼 보조 검증, lib/posts/format.ts는 한국 시간 표시, route-id.ts는 페이지 ID 검증을 담당한다.
+- 필수 표시 기호와 Next의 내부 알림 영역을 구분하도록 브라우저 테스트 선택자를 보강했다. 기능 범위를 늘리는 인접 결함은 발견되지 않았다. 기존 lint 개발 의존성 경고는 README에 유지했다.
 
 ## Next Task
 없음. Plan과 Phase를 completed로 갱신한다.

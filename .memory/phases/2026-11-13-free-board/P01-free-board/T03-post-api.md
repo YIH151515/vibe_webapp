@@ -104,7 +104,7 @@ Task: T03-post-api
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: 지정 메시지의 구현 커밋 후 해시 기록
+- commit: 7d087d4
 
 ## Execution Result
 - API 테스트 7개 통과(실제 HTTP 시나리오 6개와 내부 오류 응답 비밀값 제거 검증 1개), 서비스 테스트 7개 회귀 통과.

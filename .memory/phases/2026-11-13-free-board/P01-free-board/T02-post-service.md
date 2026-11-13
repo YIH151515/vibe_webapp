@@ -1,6 +1,6 @@
 # Task: T02 게시글 저장 서비스
 
-## Status: pending
+## Status: done
 
 ## Goal
 SQLite 영구 저장, 입력 검증과 비밀번호 기반 수정·삭제를 화면 없이 검증할 수 있게 만든다.
@@ -95,9 +95,9 @@ scrypt는 N=16384,r=8,p=1,keylen=64,maxmem=64MiB, salt=randomBytes(16). 저장 �
 Node test + assert, os.tmpdir 내 임시 디렉터리 DB를 사용하고 finally에서 close/cleanup한다. 검증: CRUD, 재open 영속성, 비밀번호 실패 시 무변경, 수정 후 작성일/hash 유지, 평문과 다른 hash와 동일 비밀번호의 서로 다른 salt, DTO에 비밀 열 없음, 입력 경계와 타입/공백/CRLF, 빈 목록, 21개 이상 페이지/초과 페이지, 동일 시각 id 내림차순, 제목/본문 검색과 %/_/역슬래시 리터럴 검색, SQL 주입 형태 문자열, 없는 id. 실제 데이터와 Next 서버는 사용하지 않는다.
 
 ## Acceptance Criteria
-- [ ] 데이터 계약대로 CRUD/검색/페이지 나누기가 동작한다.
-- [ ] 재open으로 영속성을 확인하고 공개 DTO에 비밀값이 없다.
-- [ ] 비밀번호 실패 시 수정·삭제되지 않고 테스트 DB만 변경된다.
+- [x] 데이터 계약대로 CRUD/검색/페이지 나누기가 동작한다.
+- [x] 재open으로 영속성을 확인하고 공개 DTO에 비밀값이 없다.
+- [x] 비밀번호 실패 시 수정·삭제되지 않고 테스트 DB만 변경된다.
 
 ## Validation
 - `npm run test:service` — 서비스 검증 성공.
@@ -117,9 +117,16 @@ Task: T02-post-service
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: 지정 메시지의 구현 커밋 후 해시 기록
+
+## Execution Result
+- 서비스 테스트 7개 통과: CRUD/영속성, 해시와 비밀값 제외, 입력 경계, query/id, 검색/페이지, 비밀번호 확인 중 삭제, 스키마 버전.
+- npm run typecheck / npm run lint / npm run build 모두 종료 코드 0.
+- 테스트는 os.tmpdir의 개별 임시 DB를 닫고 정리했으며 board/data 디렉터리 미생성을 확인했다.
+- 비밀번호와 숫자 ID 끝의 줄바꿈 거부를 회귀 테스트로 고정했다.
+- node:sqlite의 알려진 ExperimentalWarning 외 신규 경고나 범위 밖 결함 없음.
 
 ## Next Task
 T03-post-api.md

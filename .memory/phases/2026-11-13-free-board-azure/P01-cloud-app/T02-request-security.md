@@ -117,7 +117,7 @@ Task: T02-request-security
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: 구현 커밋 후 해시 기록
+- commit: b752683
 
 ## Execution Result
 - 보안·서비스18개/API10개/PC·모바일 브라우저8개 총36개 테스트 통과. typecheck/lint/production build 모두 종료 코드0.

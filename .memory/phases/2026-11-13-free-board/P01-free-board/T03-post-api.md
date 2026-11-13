@@ -1,6 +1,6 @@
 # Task: T03 게시글 API
 
-## Status: pending
+## Status: done
 
 ## Goal
 서비스를 JSON HTTP API로 제공하고 잘못된 입력과 권한 오류가 일관된 응답으로 처리되도록 한다.
@@ -64,7 +64,7 @@ toErrorResponse(error: unknown): Response;
   1. 두 route 파일에 runtime='nodejs', dynamic='force-dynamic'. 모든 응답에 Cache-Control: no-store. params를 await한 뒤 parsePostId 호출한다.
   2. GET 목록은 URLSearchParams를 parseListQuery로 파싱한다. GET 상세는 get 호출. 서비스 DTO만 응답하며 직접 DB row를 직렬화하지 않는다.
   3. POST/PATCH/DELETE는 ensureSameOrigin→Content-Type검사→JSON파싱→필드검증→서비스 호출 순서로 수행한다. Content-Type은 application/json 및 charset 매개변수를 허용한다. 잘못된 body JSON은 400, 다른 Content-Type은 415.
-  4. 쓰기 Origin이 있으면 new URL(request.url).origin과 정확히 일치해야 한다. Origin=null 문자열이나 URL 파싱 실패는 403. Origin이 없으면 Sec-Fetch-Site: cross-site를 거부하고 그 외는 로컬 curl/테스트 호환을 위해 허용한다. CORS 허용 헤더나 임의 allowed origins 설정을 추가하지 않는다.
+  4. 쓰기 Origin이 있으면 요청 URL의 protocol과 실제 Host 헤더로 구성한 출처와 정확히 일치해야 한다(Host가 없을 때만 URL의 host 사용). NextRequest가 127.0.0.1을 localhost로 정규화하므로 URL.origin만 비교하면 정상 로컬 요청이 차단된다. Origin=null 문자열이나 비정상 출처는 403. Origin이 없으면 Sec-Fetch-Site: cross-site를 거부하고 그 외는 로컬 curl/테스트 호환을 위해 허용한다. Forwarded 계열 헤더는 신뢰하지 않고 CORS 허용 헤더나 임의 allowed origins 설정을 추가하지 않는다.
   5. BoardError는 정의된 status/code/fieldErrors로 변환. 예상 못 한 오류는 고정 한국어 메시지 '처리 중 오류가 발생했습니다.'와 500. request body, 비밀번호, hash와 SQL을 응답/로그에 넣지 않는다.
   6. 204는 Response(null,{status:204})로 생성한다. 201 Location은 생성된 id로 만든다. 프레임워크 기본 405 처리를 사용한다.
 
@@ -80,9 +80,9 @@ Playwright config는 testDir=tests, workers=1, fullyParallel=false, baseURL=http
 - service 테스트는 이 서버나 DB를 사용하지 않는다. API tests만 실행할 때 브라우저 바이너리는 필요 없다.
 
 ## Acceptance Criteria
-- [ ] 모든 endpoint가 명시된 status와 DTO로 응답한다.
-- [ ] 잘못된 비밀번호와 cross-origin 쓰기가 데이터를 변경하지 않는다.
-- [ ] API 테스트 DB가 실제 DB와 분리되고 실패해도 서버가 정리된다.
+- [x] 모든 endpoint가 명시된 status와 DTO로 응답한다.
+- [x] 잘못된 비밀번호와 cross-origin 쓰기가 데이터를 변경하지 않는다.
+- [x] API 테스트 DB가 실제 DB와 분리되고 실패해도 서버가 정리된다.
 
 ## Validation
 - `npm run test:api` — 실제 Next 서버 대상 API 테스트 성공.
@@ -102,9 +102,17 @@ Task: T03-post-api
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: 지정 메시지의 구현 커밋 후 해시 기록
+
+## Execution Result
+- API 테스트 7개 통과(실제 HTTP 시나리오 6개와 내부 오류 응답 비밀값 제거 검증 1개), 서비스 테스트 7개 회귀 통과.
+- typecheck / lint / production build 모두 종료 코드 0.
+- 잘못된 Origin에서 작성·수정·삭제를 차단하고, 같은 Host 및 port의 Origin은 정상 처리함을 검증했다.
+- 테스트 실패 후 재실행도 새 테스트 DB로 성공했다. 3100 포트의 테스트 서버 종료와 board/data 미생성을 확인했다.
+- Next dev가 board/AGENTS.md를 자동 생성했다. 생성 근거와 설치된 Route Handler 문서를 확인했으며, 재생성되는 개발 지침을 함께 추적한다.
+- node:sqlite 실험적 경고와 실행 환경의 NO_COLOR/FORCE_COLOR 충돌 경고는 기능 실패와 무관하다. 범위 밖 기능 변경은 없다.
 
 ## Next Task
 T04-board-ui.md

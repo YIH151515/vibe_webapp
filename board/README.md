@@ -4,6 +4,8 @@ Next.js + Azure SQL로 만드는 비회원 게시판입니다. 회원가입 없�
 
 ## Azure 배포 패키지와 자동 검사
 
+실제 리소스·비밀값 보관·GitHub 인증·구축/검증 절차는 [Azure 운영 기록](docs/azure-runbook.md)을 참고합니다. 생성된 리소스는 앱 공개 전에도 요금이 발생합니다.
+
 Windows에서는 `npm run verify:azure`로 Node24 Linux 컨테이너에서 독립 빌드·ZIP·HTTP/CSS 검증을 실행합니다. 운영 환경파일은 복사하지 않습니다. Linux CI에서는 `npm run build:azure` → `npm run package:azure` → `node --test tests/package.test.mjs` 순서입니다. 기본 `npm run build`는 기존 로컬 빌드를 유지합니다.
 
 `.deploy/board.zip`은 server.js와 필요한 node_modules/.next/static/public을 포함하고 환경파일·DB·키를 제외합니다. `.deploy/release.json`은 Git commit과 ZIP SHA256만 기록합니다. `/api/health`는 SQL 및 스키마3이 준비되면 상태와 배포 버전을, 준비되지 않으면 상세정보 없는503을 반환합니다.

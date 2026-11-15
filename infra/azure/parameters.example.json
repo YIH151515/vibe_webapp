@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "names": {"value": {"resourceGroup":"rg-vibe-board-prod","plan":"asp-vibe-board-prod","webApp":"app-vibe-board-prod-7b1417","sqlServer":"sql-vibe-board-7b1417","database":"dbboardprod","deploymentIdentity":"id-vibe-board-github"}},
+    "location": {"value":"koreacentral"},
+    "sqlAdminLogin": {"value":"board_operator"}
+  }
+}

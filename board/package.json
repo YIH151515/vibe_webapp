@@ -19,7 +19,9 @@
     "admin:password": "tsx scripts/admin-password.ts",
     "build:azure": "node scripts/build-azure.mjs",
     "package:azure": "node scripts/package-azure.mjs",
-    "verify:azure": "node scripts/verify-azure.mjs"
+    "verify:azure": "node scripts/verify-azure.mjs",
+    "provision:sql": "tsx scripts/provision-sql.ts",
+    "verify:sql-access": "tsx scripts/verify-sql-access.ts"
   },
   "dependencies": {
     "mssql": "12.7.14",

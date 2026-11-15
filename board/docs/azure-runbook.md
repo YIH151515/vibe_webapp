@@ -85,3 +85,19 @@ node scripts/configure-github.mjs
 수동 등록 위치는 Repository Settings → Secrets and variables → Actions → Variables이다. SQL/관리자 암호를 등록하지 않는다. OIDC subject는 `repo:YIH151515/vibe_webapp:ref:refs/heads/main`, issuer는 GitHub, audience는 `api://AzureADTokenExchange`이다. Website Contributor는 이 Web App 범위에만 부여한다. 장기 client secret이나 Entra 앱 등록은 만들지 않았다.
 
 T02의 실제 설정 검증 완료 후 `/memory-execute`가 T03 최초 push·배포·실제 CRUD/관리자/제한·재시작 영속성 검증을 수행한다. 인증이 없다고 Task를 완료로 표시하거나 임의 수동 배포로 자동 배포 검증을 대체하지 않는다. 배포 완료 후 실제 commit/run/검증 결과와 운영 백업·복구 절차를 이 문서에 추가한다.
+
+## 공개 검증과 운영 절차
+
+`npm run verify:live -- --url <실제HTTPS주소> --commit <배포SHA> --qa-writes`는 관리자 비밀번호를 stdin으로만 받는다. 동일 출발지의 정상 작성 윈도우가 비어 있을 때 자신이 만든 최대5개 UUID QA 글만 사용하고 모두 정리한다. 기존 글과 제한 카운터는 초기화하지 않는다. 검증 후 같은 출발지는 Retry-After 동안 글 작성이 제한될 수 있다. 일반 사용자가 활동하는 출발지에서 임의 반복 실행하지 않는다. 읽기 검증은 --qa-writes를 제외한다.
+
+현재 Windows 사용자에게 보관한 DPAPI 비밀번호를 사용하려면 board에서 `./scripts/verify-live.ps1 -Commit <배포SHA>`를 실행한다. 이 helper는 Azure가 반환한 실제 호스트를 조회하고 비밀번호를 TS 도구의 stdin으로만 전달한다.
+
+검증은 health의 실제 버전, HTML/CSS, 작성·조회·수정·삭제·날짜 보존, 잘못된 비밀번호와 다른 Origin, 관리자 쿠키·동의·삭제·로그아웃 후 재사용 거부, 조작한 프록시 헤더에도 동일 SQL HMAC 제한, 실제 App Service 재시작 후 글·세션·제한 유지, Chromium1280/390px 화면을 확인한다. QA 정리에 실패하면 도구가 출력한 본인 QA id와 UUID 접두어를 확인한 후 해당 행만 관리자 경로로 정리한다.
+
+배포 상태는 `node scripts/github-release.mjs <배포SHA>`로 확인한다. 실행에 실패한 경우에만 --failure로 실패 단계 진단을 확인하며 설정 전체·쿠키·요청 body·암호는 로그에 출력하지 않는다. 서버 로그 확인 명령은 `az webapp log tail --resource-group rg-vibe-board-prod --name app-vibe-board-prod-7b1417`이다.
+
+백업은 Azure SQL Basic의 PITR7일·Local 중복 저장을 실제 확인했다. 복원은 Azure Portal의 해당 DB → Restore에서 필요한 시점을 선택하고 **별도 DB 이름**으로 실행한다. 복원 대상/추가 비용을 검토한 뒤 별도 DB로 검증하고 운영 연결을 전환한다. 기존 운영 DB를 지우거나 이번 구축 검증에서 불필요한 복원 DB를 만들지 않는다.
+
+롤백은 GitHub Actions의 이전 성공한 board-release artifact와 release.json을 내려받아 SHA256을 검사하고, 이전 board.zip을 같은 앱에 재배포한 뒤 APP_VERSION을 해당 artifact commit으로 맞추고 health를 확인한다. 앱만 되돌리며 additive SQL schema와 운영 DB는 유지한다. 이전 ZIP이 없는 첫 릴리스에는 롤백 대상이 없다. 문서 커밋의 HEAD와 실제 실행 중인 artifact commit은 다를 수 있다.
+
+현재 비용은 Azure Portal → 구독 DEX → Cost Management → Cost analysis에서 RG rg-vibe-board-prod 필터로 확인한다. 월50,000원은 목표이며 강제 지출 차단이 아니다. SKU/인스턴스/백업 변경 전 비용을 다시 확인한다.

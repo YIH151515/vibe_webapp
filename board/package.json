@@ -21,7 +21,8 @@
     "package:azure": "node scripts/package-azure.mjs",
     "verify:azure": "node scripts/verify-azure.mjs",
     "provision:sql": "tsx scripts/provision-sql.ts",
-    "verify:sql-access": "tsx scripts/verify-sql-access.ts"
+    "verify:sql-access": "tsx scripts/verify-sql-access.ts",
+    "verify:live": "tsx scripts/verify-live.ts"
   },
   "dependencies": {
     "mssql": "12.7.14",

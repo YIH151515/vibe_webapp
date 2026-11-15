@@ -118,7 +118,7 @@ Task: T02-azure-resources
 - [x] 전체 Task 완료: 아직 push/공개 릴리스하지 않았으며 다음 Task에서 진행한다.
 - 재개: 사용자가 `git credential-manager github login --username YIH151515 --device`를 본인 PC에서 완료한 후 board에서 `node scripts/configure-github.mjs --check` 및 인수 없이 실행. 남은 조건 통과 후 이 Task를 done으로 커밋하고 P02-T03 진행.
 - 구현 보완: 동적 outbound IP loop는 firewall.bicep 모듈로 분리했다. SQL 권한 검사 alias는 예약어를 bracket으로 인용했다. Azure CLI의 plan reserved는 properties.reserved도 처리한다. SQL·암호 원문 오류는 출력하지 않는다.
-- commit: pending
+- commit: a1148a2
 
 ## Next Task
 P02-azure-delivery/T03-first-release.md

@@ -16,8 +16,8 @@ test("release ZIP runs independently, serves assets and fails health safely with
   assert.ok(names.some(name => name.startsWith(".next/static/") && name.endsWith(".css")));
   for (const name of names) {
     assert.ok(!name.startsWith("/") && !name.split("/").includes(".."));
-    assert.ok(!/(^|\/)(\.env[^/]*|\.git|\.memory|data|tests|sql)(\/|$)|\.(sqlite(?:-[^/]*)?|pem|key|pfx|p12)$/i.test(name), name);
-    assert.ok(!/^(src|scripts)\//.test(name), name);
+    assert.ok(!/(^|\/)(\.env[^/]*|\.git|\.memory)(\/|$)|\.(sqlite(?:-[^/]*)?|pem|key|pfx|p12)$/i.test(name), name);
+    assert.ok(!/^(src|scripts|data|tests|sql)\//.test(name), name);
   }
   const manifest = JSON.parse(await readFile(".deploy/release.json", "utf8"));
   assert.equal(manifest.sha256, createHash("sha256").update(await readFile(zip)).digest("hex"));
@@ -26,10 +26,20 @@ test("release ZIP runs independently, serves assets and fails health safely with
   let child;
   try {
     execFileSync("unzip", ["-q", zip, "-d", temp]);
+    const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(SQL_|ADMIN_|APP_|RATE_LIMIT_|MEDIA_|STORAGE_|AZURITE_|EDITOR_|AZURE_)/.test(key)));
+    execFileSync(process.execPath, ["-e", `
+      const assert = require('node:assert/strict');
+      const sharp = require('sharp');
+      assert.equal(typeof require('@azure/storage-blob').BlobServiceClient, 'function');
+      assert.equal(typeof require('@azure/identity').ManagedIdentityCredential, 'function');
+      sharp({create:{width:1,height:1,channels:4,background:'transparent'}}).png().toBuffer()
+        .then(png => sharp(png).webp().toBuffer()).then(async bytes => {
+          assert.equal((await sharp(bytes).metadata()).format, 'webp');
+        }).catch(() => { process.exitCode = 1; });
+    `], { cwd: temp, env, stdio: "pipe", timeout: 15000 });
     const reservation = createServer().listen(0, "127.0.0.1");
     await once(reservation, "listening"); const port = reservation.address().port;
     await new Promise(done => reservation.close(done));
-    const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(SQL_|ADMIN_|APP_|RATE_LIMIT_)/.test(key)));
     child = spawn(process.execPath, ["server.js"], { cwd: temp, env: { ...env, HOSTNAME: "0.0.0.0", PORT: String(port) }, stdio: "ignore" });
     const base = `http://127.0.0.1:${port}`;
     let response;

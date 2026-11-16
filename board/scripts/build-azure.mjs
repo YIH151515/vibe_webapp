@@ -7,7 +7,7 @@ export async function buildAzure() {
   if ((await readdir(".")).some(name => name.startsWith(".env") && name !== ".env.example"))
     throw new Error("Release builds require a workspace without environment files.");
   const env = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
-    !/^(SQL_|ADMIN_|RATE_LIMIT_|APP_TEST_MODE$|APP_ORIGIN$|REQUEST_IP_MODE$|LOCAL_CLIENT_IP$)/.test(key)));
+    !/^(SQL_|ADMIN_|RATE_LIMIT_|MEDIA_|STORAGE_|AZURITE_|EDITOR_|AZURE_|APP_TEST_MODE$|APP_ORIGIN$|REQUEST_IP_MODE$|LOCAL_CLIENT_IP$)/.test(key)));
   env.NEXT_DEPLOY_STANDALONE = "1";
   await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "build"], { env, stdio: "inherit" });

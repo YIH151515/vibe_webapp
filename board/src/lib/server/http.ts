@@ -1,5 +1,5 @@
 import type { ErrorBody } from "../posts/types";
-import { BoardError, RateLimitError } from "./errors";
+import { BoardError } from "./errors";
 import { isDatabaseUnavailable } from "./database";
 import { readAppOrigin } from "./request-context";
 
@@ -66,7 +66,7 @@ export function toErrorResponse(error: unknown): Response {
       : { code: "INTERNAL_ERROR", message: "처리 중 오류가 발생했습니다." },
   };
   const headers: Record<string, string> = { "Cache-Control": "no-store" };
-  if (error instanceof RateLimitError) headers["Retry-After"] = String(error.retryAfterSeconds);
+  if (error instanceof BoardError && error.retryAfterSeconds) headers["Retry-After"] = String(error.retryAfterSeconds);
   return Response.json(body, {
     status: error instanceof BoardError ? error.status : 500, headers,
   });

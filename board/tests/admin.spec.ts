@@ -15,7 +15,9 @@ for(const width of [1280,390])test("admin moderation "+width,async({page})=>{
  await page.getByRole("button",{name:"취소",exact:true}).click();
  await page.getByRole("button",{name:"삭제 확인: "+title,exact:true}).click();
  await page.getByLabel("삭제에 동의합니다").check();
+ const deletion = page.waitForResponse(response=>response.request().method()==="DELETE"&&new URL(response.url()).pathname.startsWith("/api/admin/posts/"));
  await page.getByRole("button",{name:"삭제 실행"}).click();
+ expect((await deletion).status()).toBe(204);
  await expect(page.getByRole("status")).toContainText("글을 삭제했습니다");
  await page.getByRole("button",{name:"로그아웃",exact:true}).click();
  await expect(page.getByRole("button",{name:"로그인",exact:true})).toBeVisible();

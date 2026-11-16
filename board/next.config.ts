@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // The driver has OS-specific dependencies that must run in native Node.js.
-  serverExternalPackages: ["mssql"],
+  serverExternalPackages: ["mssql", "sharp", "@azure/storage-blob", "@azure/identity"],
   ...(process.env.NEXT_DEPLOY_STANDALONE === "1"
     ? { output: "standalone" as const, outputFileTracingRoot: process.cwd() }
     : {}),

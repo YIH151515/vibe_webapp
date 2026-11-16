@@ -4,6 +4,9 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { resolve, relative, sep, basename } from "node:path";
 import archiver from "archiver";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { nodeFileTrace } = require("next/dist/compiled/@vercel/nft");
 
 const root = resolve(".");
 const output = resolve(root, ".deploy");
@@ -15,7 +18,8 @@ function owned(path) {
 function allowed(path) {
   const name = basename(path);
   return !name.startsWith(".env") && !/\.(sqlite(?:-.*)?|pem|key|pfx|p12)$/i.test(name)
-    && ![".git", ".memory", "data", "tests", "sql", ".agents", ".codex"].includes(name);
+    && ![".git", ".memory", ".agents", ".codex"].includes(name)
+    && (relative(root, path).split(sep).includes("node_modules") || !["data", "tests", "sql", "src", "scripts"].includes(name));
 }
 export async function packageAzure() {
   if (process.platform !== "linux") throw new Error("Package Linux release output on Linux only");
@@ -28,6 +32,15 @@ export async function packageAzure() {
     if (!names.includes(required)) throw new Error("Incomplete standalone build: " + required);
   for (const name of ["server.js", "package.json", "node_modules", ".next"])
     await cp(resolve(standalone, name), resolve(staging, name), { recursive: true, dereference: true, filter: allowed });
+  // T02 introduces adapters before routes import them. Trace their native/runtime
+  // dependencies explicitly instead of relying on unused application imports.
+  const entries = ["sharp", "@azure/storage-blob", "@azure/identity"].flatMap(name => [require.resolve(name), resolve(root, "node_modules", name, "package.json")]);
+  const trace = await nodeFileTrace(entries, { base: root, processCwd: root });
+  for (const file of trace.fileList) {
+    if (!file.startsWith("node_modules/") || !allowed(resolve(root, file))) throw new Error("Unexpected runtime trace path");
+    await mkdir(resolve(staging, file, ".."), { recursive: true });
+    await cp(resolve(root, file), resolve(staging, file), { dereference: true });
+  }
   await cp(".next/static", resolve(staging, ".next/static"), { recursive: true, filter: allowed });
   try { await stat("public"); await cp("public", resolve(staging, "public"), { recursive: true, filter: allowed }); }
   catch (error) { if (error.code !== "ENOENT") throw error; }

@@ -6,6 +6,7 @@ export class BoardError extends Error {
     public readonly status: number,
     message: string,
     public readonly fieldErrors?: Record<string, string>,
+    public readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "BoardError";

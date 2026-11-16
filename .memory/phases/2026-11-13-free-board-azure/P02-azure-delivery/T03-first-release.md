@@ -112,6 +112,8 @@ Task: T03-first-release
 - 검증 중 발견한 환경 격리 결함 수정: 운영 .env.local 추가 후 Next dev가 테스트 관리자 hash에 간섭했다. run-tests.ts에 NODE_ENV=test를 지정해 Next의 공식 환경파일 규칙에 따라 .env.local을 제외했다. 테스트 SQL 접속은 loopback/board_test_ guard로 계속 격리돼 운영 DB에는 테스트가 실행되지 않았다.
 - 원격 저장소는 빈 상태이며, Git 이력 경로 검사에서 환경파일/DB/zip/개인키 파일이 없는 점을 확인했다. master→main 전환 및 origin 연결 완료.
 - 배포 전 전체43개(서비스19/API14/E2E10), typecheck/lint/build, Linux ZIP 기동·CSS·health503·비밀파일 배제와 workflow 검사 통과. CLI 진입부는 Playwright CJS 변환과도 호환되도록 직접 실행 경로 비교로 분리했다.
+- 최초 준비 commit/push: 5e63d1fcc85579f94bfb29e78b097ae7874be303 (main→origin/main). 강제 push 없이 기존 이력을 보존했다. Actions https://github.com/YIH151515/vibe_webapp/actions/runs/43777374241 진행 중.
+- 첫 run은 verify/패키징 모두 성공 후 OIDC AADSTS700213으로 로그인 실패했다. 실제 assertion이 immutable owner/repo ID 형식임을 공식 문서와 GitHub API(owner355682187/repo1456296194)로 확인해 Azure 연합 subject/Bicep/운영검사를 해당 저장소 main 한정 형식으로 갱신했다. 역할 범위와 SQL 인증/TLS는 유지했다.
 - [ ] 구현 완료
 - [ ] 검증 통과
 - commit: pending

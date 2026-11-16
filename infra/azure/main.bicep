@@ -116,7 +116,7 @@ resource federation 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedI
   properties: {
     issuer: 'https://token.actions.githubusercontent.com'
     audiences: ['api://AzureADTokenExchange']
-    subject: 'repo:YIH151515/vibe_webapp:ref:refs/heads/main'
+    subject: 'repo:YIH151515@355682187/vibe_webapp@1456296194:ref:refs/heads/main'
   }
 }
 resource deployRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

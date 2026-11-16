@@ -107,7 +107,7 @@ try {
       $roles = Invoke-BoardAz @('role','assignment','list','--assignee-object-id',$identity.principalId,'--scope',$app.id,'--query','[].roleDefinitionName','-o','json') | ConvertFrom-Json
       if ('Website Contributor' -notin $roles) { throw 'App-scoped deployment role missing.' }
       $federation = Invoke-BoardAz @('identity','federated-credential','show','--identity-name',$names.deploymentIdentity,'--resource-group',$rg,'--name','github-main','-o','json') | ConvertFrom-Json
-      if ($federation.subject -ne 'repo:YIH151515/vibe_webapp:ref:refs/heads/main' -or $federation.issuer -ne 'https://token.actions.githubusercontent.com') { throw 'OIDC federation mismatch.' }
+      if ($federation.subject -ne 'repo:YIH151515@355682187/vibe_webapp@1456296194:ref:refs/heads/main' -or $federation.issuer -ne 'https://token.actions.githubusercontent.com') { throw 'OIDC federation mismatch.' }
       Write-Output 'Verified B1 Linux x1, SQL Basic 2GB Local backup, exact-IP firewall, Node24/HTTPS and setting names.'
     }
   }

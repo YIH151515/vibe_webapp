@@ -14,7 +14,8 @@
 - 서비스19개/API13개/브라우저10개 총42개 및 typecheck/lint/build, Linux ZIP 기동·assets·503·비밀파일 배제, workflow 검사 통과
 - P02-T02 완료 (commit: a1148a2), Azure·SQL 실제 생성 및 검증 완료
 - Bicep/Validate/WhatIf/Apply/Verify, migration2회, SQL CRUD허용·DDL거부·글0개/schema3, local health200/admin401 확인
-- 2026-11-16 GitHub write 인증 및 배포 변수5개 등록·재조회 완료. 최초 push 전
+- 2026-11-16 GitHub write 인증 및 배포 변수5개 등록·재조회 완료
+- P02-T03 준비 5e63d1fcc85579f94bfb29e78b097ae7874be303 main 정상 push 완료, Actions run43777374241 진행 중
 - 운영 리소스는 생성 시점부터 과금됨(예상 기본 약24,782원/월, 세금 등 별도). 실제 값·DPAPI 비밀 보관/로그인 절차: board/docs/azure-runbook.md
 - done: 5/6
 - Docker Linux 엔진 기동 확인, 테스트 전용 컨테이너 정리 완료

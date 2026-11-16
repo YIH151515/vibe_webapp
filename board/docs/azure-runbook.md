@@ -82,7 +82,7 @@ node scripts/configure-github.mjs
 | AZURE_WEBAPP_NAME | app-vibe-board-prod-7b1417 |
 | AZURE_RESOURCE_GROUP | rg-vibe-board-prod |
 
-수동 등록 위치는 Repository Settings → Secrets and variables → Actions → Variables이다. SQL/관리자 암호를 등록하지 않는다. OIDC subject는 `repo:YIH151515/vibe_webapp:ref:refs/heads/main`, issuer는 GitHub, audience는 `api://AzureADTokenExchange`이다. Website Contributor는 이 Web App 범위에만 부여한다. 장기 client secret이나 Entra 앱 등록은 만들지 않았다.
+수동 등록 위치는 Repository Settings → Secrets and variables → Actions → Variables이다. SQL/관리자 암호를 등록하지 않는다. 실제 OIDC subject는 `repo:YIH151515@355682187/vibe_webapp@1456296194:ref:refs/heads/main`, issuer는 GitHub, audience는 `api://AzureADTokenExchange`이다. 첫 실행에서 이름만 있는 subject와 불일치하여, GitHub API로 검증한 owner/repository ID를 포함하는 immutable subject로 수정했다. [GitHub OIDC 공식 문서](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims) 형식과 일치하며 이 저장소의 main만 허용한다. Website Contributor는 이 Web App 범위에만 부여한다. 장기 client secret이나 Entra 앱 등록은 만들지 않았다.
 
 T02의 실제 설정 검증 완료 후 `/memory-execute`가 T03 최초 push·배포·실제 CRUD/관리자/제한·재시작 영속성 검증을 수행한다. 인증이 없다고 Task를 완료로 표시하거나 임의 수동 배포로 자동 배포 검증을 대체하지 않는다. 배포 완료 후 실제 commit/run/검증 결과와 운영 백업·복구 절차를 이 문서에 추가한다.
 

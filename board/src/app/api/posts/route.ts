@@ -24,7 +24,8 @@ export async function POST(request: Request): Promise<Response> {
     const input = parsePostInput(await readJson(request));
     const key = getClientKey(request);
     const pool = await getDatabase();
-    const post = await withRateLimit(pool, "post-create", key, () => createPostService(pool).create(input));
+    if (input.document) ensureSameOrigin(request, { requireOrigin: true });
+    const post = await withRateLimit(pool, "post-create", key, () => createPostService(pool).create(input, { clientKey: key }));
     return Response.json(post, {
       status: 201,
       headers: { "Cache-Control": "no-store", Location: `/posts/${post.id}` },

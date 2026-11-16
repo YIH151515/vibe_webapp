@@ -29,7 +29,8 @@ export async function PATCH(request: Request, context: ItemContext): Promise<Res
     const pool = await getDatabase();
     const service = createPostService(pool);
     await service.get(id);
-    const post = await withRateLimit(pool, "post-password", key, () => service.update(id, input));
+    if (input.document) ensureSameOrigin(request, { requireOrigin: true });
+    const post = await withRateLimit(pool, "post-password", key, () => service.update(id, input, { clientKey: key }));
     return Response.json(post, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return toErrorResponse(error);

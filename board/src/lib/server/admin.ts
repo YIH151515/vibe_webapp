@@ -4,6 +4,7 @@ import { BoardError } from "./errors";
 import { verifyPassword } from "./password";
 import { readAppOrigin } from "./request-context";
 import { parsePostId } from "./validation";
+import { deletePostAndDetach } from "./post-media";
 
 export type AdminSession = { expiresAt: string };
 function settings() {
@@ -57,6 +58,5 @@ export async function revokeAdminSession(pool:ConnectionPool,value:string|undefi
 }
 export async function deletePostAsAdmin(pool:ConnectionPool,id:number):Promise<void> {
  parsePostId(String(id));
- const result=await pool.request().input("id",sql.BigInt,String(id)).query("DELETE dbo.posts WHERE id=@id");
- if(!result.rowsAffected[0])throw new BoardError("NOT_FOUND",404,"글을 찾을 수 없습니다.");
+ await deletePostAndDetach(pool,id);
 }

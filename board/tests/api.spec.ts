@@ -12,7 +12,7 @@ const origin = "http://127.0.0.1:3100";
 
 test("rich text API stores canonical content and refuses unsafe documents and legacy flattening", async ({ request }) => {
   const data = input(), document = plainToDocument("실제 검색어\n서식 ALPHA");
-  const response = await request.post("/api/posts", { data: { ...data, content: "무시할 검색어", document } });
+  const response = await request.post("/api/posts", { headers: { Origin: origin }, data: { ...data, content: "무시할 검색어", document } });
   expect(response.status()).toBe(201);
   const post = await response.json() as Post;
   expect(post.contentFormat).toBe("rich_v1"); expect(post.document).toEqual(document);
@@ -22,10 +22,10 @@ test("rich text API stores canonical content and refuses unsafe documents and le
   const malformed = { ...document, content: [{ type: "html", content: "<script>alert(1)</script>" }] };
   await expectError(await request.patch(`/api/posts/${post.id}`, { data: { ...data, document: malformed } }), 400, "VALIDATION_ERROR");
   expect(await (await request.get(`/api/posts/${post.id}`)).json()).toEqual(post);
-  const updated = await request.patch(`/api/posts/${post.id}`, { data: { ...data, document: plainToDocument("수정된 본문") } });
+  const updated = await request.patch(`/api/posts/${post.id}`, { headers: { Origin: origin }, data: { ...data, document: plainToDocument("수정된 본문") } });
   expect(updated.status()).toBe(200); expect((await updated.json() as Post).createdAt).toBe(post.createdAt);
   const images = { version: 1, type: "doc", content: [{ type: "image", attrs: { assetId: randomUUID(), alt: "첨부" } }] };
-  await expectError(await request.post("/api/posts", { data: { ...data, document: images } }), 503, "SERVICE_UNAVAILABLE");
+  await expectError(await request.post("/api/posts", { headers: { Origin: origin }, data: { ...data, document: images } }), 409, "MEDIA_CONFLICT");
   expect((await request.delete(`/api/posts/${post.id}`, { data: { password: data.password } })).status()).toBe(204);
 });
 

@@ -322,16 +322,16 @@ test("rich text persists, searches only server text, keeps dates and cannot be f
   } finally { await f.close(); }
 });
 
-test("unbound image writes are unavailable and malformed stored documents fail closed", async () => {
+test("unbound image writes conflict and malformed stored documents fail closed", async () => {
   const f = await sqlFixture();
   try {
     const document = { version: 1 as const, type: "doc" as const, content: [
       { type: "image" as const, attrs: { assetId: randomUUID(), alt: "첨부" } },
     ] };
     const normalized = normalizeDocument(document); assert.equal(normalized.text, "");
-    await assert.rejects(f.service.create({ ...input, document }), isError("SERVICE_UNAVAILABLE", 503));
+    await assert.rejects(f.service.create({ ...input, document }), isError("MEDIA_CONFLICT", 409));
     const post = await f.service.create(input);
-    await assert.rejects(f.service.update(post.id, { ...input, document }), isError("SERVICE_UNAVAILABLE", 503));
+    await assert.rejects(f.service.update(post.id, { ...input, document }), isError("MEDIA_CONFLICT", 409));
     assert.deepEqual(await f.service.get(post.id), post);
     await f.pool.request().input("id", sql.BigInt, post.id).input("document", sql.NVarChar(sql.MAX), normalized.json)
       .query("UPDATE dbo.posts SET content_format='rich_v1',content_json=@document,content=N'' WHERE id=@id");

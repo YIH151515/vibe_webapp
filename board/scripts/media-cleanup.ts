@@ -22,7 +22,7 @@ export async function cleanupCli(args: string[]) {
     if (existsSync(".env.local")) process.loadEnvFile(".env.local");
     if (process.env.SQL_SERVER !== "sql-vibe-board-7b1417.database.windows.net" || process.env.SQL_DATABASE !== "dbboardprod" ||
       process.env.STORAGE_AUTH_MODE !== "azure-cli" || process.env.STORAGE_CONTAINER !== "board-images" ||
-      !/^https:\/\/[a-z0-9]{3,24}\.blob\.core\.windows\.net$/.test(process.env.STORAGE_BLOB_SERVICE_URL ?? "")) throw new Error("Unexpected cleanup environment");
+      process.env.STORAGE_BLOB_SERVICE_URL !== "https://stvibeboardimg7b1417.blob.core.windows.net") throw new Error("Unexpected cleanup environment");
   }
   const store = createBlobStore(process.env); // validates configuration; no network in dry-run
   const pool = await openDatabase(readSqlConfig(process.env));

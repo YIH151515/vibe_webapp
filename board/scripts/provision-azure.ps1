@@ -68,6 +68,25 @@ if ($exists) {
   if ($names.webApp -in $apps) {
     $version = Invoke-BoardAz @('webapp','config','appsettings','list','--name',$names.webApp,'--resource-group',$rg,'--query',"[?name=='APP_VERSION'].value | [0]",'-o','tsv')
     if ($version) { $parameters.appVersion = @{value=$version.Trim()} }
+    $imageSettings=Invoke-BoardAz @('webapp','config','appsettings','list','--name',$names.webApp,'--resource-group',$rg,'--query',"[?starts_with(name,'STORAGE_') || name=='EDITOR_FEATURE_ENABLED' || name=='MEDIA_CLEANUP_ENABLED']",'-o','json') | ConvertFrom-Json
+    $imageValues=@{}
+    foreach($setting in $imageSettings){$imageValues[$setting.name]=[string]$setting.value}
+    if($imageValues['STORAGE_BLOB_SERVICE_URL']) {
+      if($imageValues['STORAGE_BLOB_SERVICE_URL'] -ne 'https://stvibeboardimg7b1417.blob.core.windows.net' -or
+        $imageValues['STORAGE_AUTH_MODE'] -ne 'managed-identity' -or $imageValues['STORAGE_CONTAINER'] -ne 'board-images'){throw 'Unexpected existing image configuration; refusing overwrite.'}
+      $parameters.imageStorageAccountName=@{value='stvibeboardimg7b1417'}
+    }
+    foreach($pair in @(@('EDITOR_FEATURE_ENABLED','editorFeatureEnabled'),@('MEDIA_CLEANUP_ENABLED','mediaCleanupEnabled'))) {
+      $value=$imageValues[$pair[0]]
+      if($null -ne $value -and $value -notin @('0','1')){throw 'Invalid existing image flag.'}
+      $parameters[$pair[1]]=@{value=($value -eq '1')}
+    }
+    $existingApp=Invoke-BoardAz @('webapp','show','--name',$names.webApp,'--resource-group',$rg,'--query','identity','-o','json') | ConvertFrom-Json
+    if($existingApp.userAssignedIdentities) {
+      $preserved=@{}
+      foreach($identityId in $existingApp.userAssignedIdentities.PSObject.Properties.Name){$preserved[$identityId]=@{}}
+      $parameters.existingAppUserAssignedIdentities=@{value=$preserved}
+    }
   }
 }
 $temp = Join-Path $vault ([guid]::NewGuid().ToString('N')+'.parameters.json')

@@ -17,6 +17,11 @@ param rateKeySecret string
 param localPublicIp string
 param deployRoleDefinitionId string = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')
 param appVersion string = 'provisioning'
+@allowed(['', 'stvibeboardimg7b1417'])
+param imageStorageAccountName string = ''
+param editorFeatureEnabled bool = false
+param mediaCleanupEnabled bool = false
+param existingAppUserAssignedIdentities object = {}
 var tags = { project: 'vibe-board', environment: 'production', managedBy: 'vibeweb-bicep' }
 
 resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
@@ -62,6 +67,10 @@ resource app 'Microsoft.Web/sites@2023-12-01' = {
   location: location
   tags: tags
   kind: 'app,linux'
+  identity: {
+    type: empty(existingAppUserAssignedIdentities) ? 'SystemAssigned' : 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: existingAppUserAssignedIdentities
+  }
   properties: {
     serverFarmId: plan.id
     httpsOnly: true
@@ -82,7 +91,7 @@ resource app 'Microsoft.Web/sites@2023-12-01' = {
 resource settings 'Microsoft.Web/sites/config@2023-12-01' = {
   parent: app
   name: 'appsettings'
-  properties: {
+  properties: union({
     SQL_SERVER: sqlServer.properties.fullyQualifiedDomainName
     SQL_DATABASE: database.name
     SQL_USER: 'board_app'
@@ -98,7 +107,13 @@ resource settings 'Microsoft.Web/sites/config@2023-12-01' = {
     ENABLE_ORYX_BUILD: 'false'
     WEBSITE_RUN_FROM_PACKAGE: '1'
     APP_VERSION: appVersion
-  }
+    EDITOR_FEATURE_ENABLED: editorFeatureEnabled ? '1' : '0'
+    MEDIA_CLEANUP_ENABLED: mediaCleanupEnabled ? '1' : '0'
+  }, empty(imageStorageAccountName) ? {} : {
+    STORAGE_AUTH_MODE: 'managed-identity'
+    STORAGE_BLOB_SERVICE_URL: 'https://${imageStorageAccountName}.blob.${environment().suffixes.storage}'
+    STORAGE_CONTAINER: 'board-images'
+  })
 }
 var outboundIps = union(split(app.properties.outboundIpAddresses, ','), split(app.properties.possibleOutboundIpAddresses, ','), [localPublicIp])
 module firewall './firewall.bicep' = {

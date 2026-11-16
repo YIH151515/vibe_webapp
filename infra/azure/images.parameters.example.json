@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": { "value": "koreacentral" },
+    "storageAccountName": { "value": "stvibeboardimg7b1417" },
+    "runtimePrincipalId": { "value": "00000000-0000-4000-8000-000000000001" },
+    "operatorPrincipalId": { "value": "00000000-0000-4000-8000-000000000002" }
+  }
+}

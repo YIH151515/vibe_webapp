@@ -4,6 +4,9 @@ import { assertMediaTestStorage, createBlobStore } from "../src/lib/server/blob-
 import { BoardError } from "../src/lib/server/errors";
 import { mediaFixture } from "./helpers/media-fixture";
 import { FakeBlobStore } from "./helpers/fake-blob-store";
+import { ContainerClient, StorageSharedKeyCredential } from "@azure/storage-blob";
+import { mediaStoragePipeline } from "../src/lib/server/blob-store";
+import { verifyImageAccess } from "../scripts/verify-image-access";
 
 const name = "images/" + "a".repeat(32) + ".webp";
 test("private Azurite SDK roundtrip, conditional put, missing and cancelled streams", async () => {
@@ -11,6 +14,10 @@ test("private Azurite SDK roundtrip, conditional put, missing and cancelled stre
   try {
     const bytes = Buffer.alloc(1024 * 1024, 31);
     const stored = await fixture.store.put(name, bytes);
+    assert.deepEqual(await fixture.store.head(name), { bytes: bytes.length, etag: stored.etag });
+    const container = new ContainerClient(`${process.env.STORAGE_BLOB_SERVICE_URL}/${fixture.containerName}`,
+      mediaStoragePipeline(new StorageSharedKeyCredential(process.env.AZURITE_ACCOUNT!, process.env.AZURITE_KEY!)));
+    assert.deepEqual(await verifyImageAccess(container), { containerReadable: true, private: true });
     assert.deepEqual(await fixture.store.head(name), { bytes: bytes.length, etag: stored.etag });
     const result = await fixture.store.read(name);
     assert.deepEqual(Buffer.from(await new Response(result.stream).arrayBuffer()), bytes);

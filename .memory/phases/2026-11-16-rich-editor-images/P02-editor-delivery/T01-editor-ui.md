@@ -123,7 +123,7 @@ Task: T01-editor-ui
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: e47dce5
 
 ## Next Task
 P02-editor-delivery/T02-azure-storage.md

@@ -7,14 +7,14 @@
 [P02 에디터 UI와 Azure 공개](./phases/2026-11-16-rich-editor-images/P02-editor-delivery/phase.md)
 
 ## Active Task
-[P02-T01 Tiptap 편집·업로드 UX·안전한 상세 표시](./phases/2026-11-16-rich-editor-images/P02-editor-delivery/T01-editor-ui.md)
+[P02-T02 private Blob·앱ID·권한·배포 준비](./phases/2026-11-16-rich-editor-images/P02-editor-delivery/T02-azure-storage.md)
 
 ## Status
 - 사용자 요청(2026-11-16): 에디터·이미지 업로드까지 완성한 뒤 운영에 배포하고 URL을 안내한다(선택1). 남은 Task를 순서대로 자동 연속 실행하며, P02-T03의 안전한 schema4 전환/Actions 배포/실제 QA까지 완료한다. 기반 코드만 먼저 배포하는 선택은 하지 않았다.
-- P01-T04 완료 (commit: 6648ae9), P02-T01 구현 시작 준비 완료
-- done: 4/7 (P01 4/4, P02 0/3)
+- P02-T01 완료 (commit: e47dce5), P02-T02 구현 시작 준비 완료
+- done: 5/7 (P01 4/4, P02 1/3)
 - feature/rich-editor-images에서 문서/schema4/DTO/feature flag/기존글 호환 구현 완료. 운영 SQL·Azure·main 배포는 변경하지 않았다.
-- 서비스·문서·보안·미디어·정리51/API17/E2E10 총78개, typecheck/lint/build, verify:azure, git diff --check 통과. Linux ZIP의 sharp native 변환/두 Azure SDK import/root/CSS/health503 확인. 소유 SQL/Azurite 테스트 컨테이너 정리 완료.
+- 서비스·문서·보안·미디어·정리·editor54/API17/E2E20 총91개, typecheck/lint/build, verify:azure, git diff --check 통과. Linux ZIP의 sharp native 변환/두 Azure SDK import/root/CSS/health503/editor-config(flag0) 확인. 소유 SQL/Azurite 테스트 컨테이너 정리 완료.
 - schema4는 일회용 SQL에서만 검증했다. 현재 브랜치를 운영 SQL3에 연결해 사용하려고 migration을 앞당기지 않는다.
 - Tiptap3.34.0 + private Azure Blob + 5MiB/장·5장/글·20MiB/글, 전체 추적 용량1GiB
 - 이전 Azure 공개 운영 계획은 completed 6/6으로 보존: [기존 계획](./plans/2026-11-13-free-board-azure.md)
@@ -26,4 +26,4 @@
 - 추가 선택은 기존 사용자 지시에 따라 권고안으로 정했다. 부족한 실제 인증·권한만 실행 단계에서 요청한다.
 
 ## Next Step (IMPORTANT)
-P02-T01 청사진을 읽고 Tiptap3.34.0 에디터/파일 선택·붙여넣기·drop/업로드 상태·이탈 정리/안전한 React 상세 renderer를 구현한다. backend 세션·원자 연결·삭제와 cleanup worker 구현 완료. startMediaCleanup은 Azure Node+flag에서만 기동하며 late object는 durable outbox로 다시 처리한다. 현재 feature 브랜치를 유지하고 next-env.d.ts 사용자 변경을 보존한다. SQL BIGINT는 safeBytes로 변환한다. 남은 Task를 자동 연속 실행하여 에디터·운영 배포까지 완료한다. 운영 migration·main push·Azure 변경은 P02 준비/릴리스 순서를 지킨다.
+P02-T02 청사진을 읽고 Azure private Blob/앱 system assigned identity/최소 container 역할/설정/비용·복구 문서를 준비한다. Tiptap3.34.0 UI와 저장 시 업로드/취소/재시도/안전한 renderer 완료. 사용자 전체 배포 승인에 따라 남은 Task를 자동 연속 실행한다. 운영 schema4 migration·main push·기능 활성화는 마지막 P02-T03에서만 한다. 현재 feature 브랜치와 next-env.d.ts 사용자 변경을 보존한다. GitHub 인증 정상, 원격 main은 마지막 조회8a646ae637631f8ee9cbe95e862fb37633532704f(실제 원문은 최종 fetch로 재확인). 운영 health는57fda56f9e28dbc33971323dd804b2268cee5a55/Running을 읽기로 확인했다.

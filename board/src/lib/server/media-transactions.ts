@@ -8,7 +8,7 @@ export function safeBytes(value: unknown): number {
   if (!Number.isSafeInteger(result) || result < 0) throw mediaUnavailable();
   return result;
 }
-export function conflict(): BoardError { return new BoardError("MEDIA_CONFLICT", 409, "이미지 또는 편집 세션이 변경되었습니다. 다시 확인해 주세요.", undefined, 1); }
+export function conflict(message = "이미지 또는 편집 세션이 변경되었습니다. 다시 확인해 주세요."): BoardError { return new BoardError("MEDIA_CONFLICT", 409, message, undefined, 1); }
 export async function mediaTransaction<T>(pool: ConnectionPool, work: (tx: sql.Transaction) => Promise<T>, signal?: AbortSignal): Promise<T> {
   const tx = new sql.Transaction(pool);
   try {

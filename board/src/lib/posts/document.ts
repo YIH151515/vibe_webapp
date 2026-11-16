@@ -14,6 +14,14 @@ export type RichBlock = RichParagraph | RichHeading | RichList
 export type RichDocument = { version: 1; type: "doc"; content: RichBlock[] };
 export type NormalizedDocument = { document: RichDocument; json: string; text: string; imageIds: string[] };
 
+export function isSafeLink(value: string): boolean {
+  if (!value || value.length > 2048 || value !== value.trim() || /[\u0000-\u0020\u007f-\u009f]/.test(value) || !/^(?:https?:\/\/|mailto:)/i.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return ["http:", "https:", "mailto:"].includes(url.protocol) && !url.username && !url.password && (url.protocol !== "mailto:" || !!url.pathname);
+  } catch { return false; }
+}
+
 export class DocumentValidationError extends Error {
   constructor() { super("올바른 본문 서식과 허용된 크기를 확인해 주세요."); this.name = "DocumentValidationError"; }
 }
@@ -49,14 +57,7 @@ export function normalizeDocument(value: unknown): NormalizedDocument {
       seen.add(mark.type);
       if (mark.type === "link") {
         const attrs = object(mark.attrs, ["href"]);
-        if (typeof attrs.href !== "string" || !attrs.href || attrs.href.length > 2048 ||
-          attrs.href !== attrs.href.trim() || /[\u0000-\u0020\u007f-\u009f]/.test(attrs.href) ||
-          !/^(?:https?:\/\/|mailto:)/i.test(attrs.href)) invalid();
-        try {
-          const url = new URL(attrs.href);
-          if (!["http:", "https:", "mailto:"].includes(url.protocol) || url.username || url.password ||
-            (url.protocol === "mailto:" && !url.pathname)) invalid();
-        } catch { invalid(); }
+        if (typeof attrs.href !== "string" || !isSafeLink(attrs.href)) invalid();
         marks.push({ type: "link", attrs: { href: attrs.href } });
       } else if (["bold", "italic", "underline", "strike"].includes(mark.type)) {
         object(mark, ["type"]);

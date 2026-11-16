@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatDate } from "@/lib/posts/format";
 import { Failure, Loading } from "./feedback";
 import { usePost } from "./use-post";
+import { RichContent } from "./rich-content";
 
 export function PostDetail({ id }: { id: number }): React.JSX.Element {
   const { post, loading, error, retry } = usePost(id);
@@ -18,7 +19,7 @@ export function PostDetail({ id }: { id: number }): React.JSX.Element {
           <h1>{post.title}</h1>
           <div className="post-meta"><span>{post.nickname}</span><span aria-hidden="true">·</span><time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time></div>
         </header>
-        <div className="post-content">{post.content}</div>
+        {post.document ? <RichContent document={post.document} /> : <div className="post-content">{post.content}</div>}
         <footer className="post-footer">
           <Link className="button secondary" href="/">목록으로</Link>
           <div className="actions">

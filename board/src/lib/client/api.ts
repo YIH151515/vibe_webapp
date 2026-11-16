@@ -54,12 +54,12 @@ export function getPost(id: number, signal?: AbortSignal): Promise<Post> {
   return request(`/api/posts/${id}`, { signal });
 }
 
-export function createPost(input: PostInput): Promise<Post> {
-  return request("/api/posts", json("POST", input));
+export function createPost(input: PostInput, signal?: AbortSignal): Promise<Post> {
+  return request("/api/posts", { ...json("POST", input), signal });
 }
 
-export function updatePost(id: number, input: PostInput): Promise<Post> {
-  return request(`/api/posts/${id}`, json("PATCH", input));
+export function updatePost(id: number, input: PostInput, signal?: AbortSignal): Promise<Post> {
+  return request(`/api/posts/${id}`, { ...json("PATCH", input), signal });
 }
 
 export function deletePost(id: number, password: string): Promise<void> {

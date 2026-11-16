@@ -23,15 +23,15 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
       await page.getByRole("link", { name: "글쓰기", exact: true }).click();
       await page.getByRole("button", { name: "글 등록", exact: true }).click();
       await expect(page.locator("main").getByRole("alert")).toContainText("입력 내용을 확인");
-      await expect(page.getByLabel(/^제목/)).toBeFocused();
-      await page.getByLabel(/^제목/).fill(title);
+      await expect(page.getByRole("textbox", { name: /^제목/ })).toBeFocused();
+      await page.getByRole("textbox", { name: /^제목/ }).fill(title);
       await page.getByLabel(/^닉네임/).fill("브라우저작성자");
       await page.getByLabel(/^비밀번호/).fill(password);
-      await page.getByLabel(/^본문/).fill(content);
+      await page.getByRole("textbox", { name: /^본문/ }).fill(content);
       await page.getByRole("button", { name: "글 등록", exact: true }).click();
       await expect(page).toHaveURL(/\/posts\/\d+$/);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
-      await expect(page.locator(".post-content")).toHaveText(content);
+      await expect(page.locator(".post-content")).toHaveText(content, { useInnerText: true });
       expect(await page.evaluate(() => "__boardInjected" in window)).toBe(false);
       expect(await page.content()).not.toContain("password_hash");
       expect(await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }))).not.toContain(password);
@@ -45,14 +45,14 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
       await expect(page.getByRole("link", { name: "글 수정", exact: true })).toBeVisible();
       await expect(page.getByRole("link", { name: "글 삭제", exact: true })).toBeVisible();
       await page.getByRole("link", { name: "글 수정", exact: true }).click();
-      await expect(page.getByLabel(/^제목/)).toHaveValue(title);
+      await expect(page.getByRole("textbox", { name: /^제목/ })).toHaveValue(title);
       await expect(page.getByLabel(/^비밀번호/)).toHaveValue("");
-      await page.getByLabel(/^제목/).fill(title + "-수정");
+      await page.getByRole("textbox", { name: /^제목/ }).fill(title + "-수정");
       await page.getByLabel(/^비밀번호/).fill("wrong-password");
       await page.getByRole("button", { name: "수정 저장" }).click();
       await expect(page.locator("main").getByRole("alert")).toHaveText("비밀번호가 일치하지 않습니다.");
       await expect(page.getByLabel(/^비밀번호/)).toHaveValue("");
-      await expect(page.getByLabel(/^제목/)).toHaveValue(title + "-수정");
+      await expect(page.getByRole("textbox", { name: /^제목/ })).toHaveValue(title + "-수정");
       await page.getByLabel(/^비밀번호/).fill(password);
       await page.getByRole("button", { name: "수정 저장" }).click();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(title + "-수정");
@@ -142,7 +142,7 @@ test("rate limit feedback includes wait time and clears only the password", asyn
   expect(response.status()).toBe(201);
   const { id } = await response.json();
   await page.goto(`/posts/${id}/edit`);
-  await expect(page.getByLabel(/^제목/)).toHaveValue(data.title);
+  await expect(page.getByRole("textbox", { name: /^제목/ })).toHaveValue(data.title);
   await page.route(`**/api/posts/${id}`, async route => {
     if (route.request().method() !== "PATCH") return route.continue();
     await route.fulfill({
@@ -150,10 +150,10 @@ test("rate limit feedback includes wait time and clears only the password", asyn
       json: { error: { code: "RATE_LIMITED", message: "요청이 많습니다. 60초 후 다시 시도해 주세요." } },
     });
   });
-  await page.getByLabel(/^제목/).fill("유지할 제목");
+  await page.getByRole("textbox", { name: /^제목/ }).fill("유지할 제목");
   await page.getByLabel(/^비밀번호/).fill(password);
   await page.getByRole("button", { name: "수정 저장" }).click();
   await expect(page.locator("main").getByRole("alert")).toContainText("60초");
-  await expect(page.getByLabel(/^제목/)).toHaveValue("유지할 제목");
+  await expect(page.getByRole("textbox", { name: /^제목/ })).toHaveValue("유지할 제목");
   await expect(page.getByLabel(/^비밀번호/)).toHaveValue("");
 });

@@ -54,6 +54,9 @@ test("release ZIP runs independently, serves assets and fails health safely with
     const health = await fetch(base + "/api/health");
     assert.equal(health.status, 503); assert.equal(health.headers.get("cache-control"), "no-store");
     assert.deepEqual(await health.json(), { status: "unavailable" });
+    const editorConfig = await fetch(base + "/api/editor-config");
+    assert.equal(editorConfig.status, 200); assert.equal(editorConfig.headers.get("cache-control"), "no-store");
+    assert.deepEqual(await editorConfig.json(), { enabled: false, maxFileBytes: 5242880, maxImages: 5, maxInputBytes: 20971520 });
     assert.equal((await fetch(base)).status, 200);
   } finally {
     if (child && child.exitCode === null) { const exited = once(child, "exit"); child.kill("SIGTERM"); await exited; }

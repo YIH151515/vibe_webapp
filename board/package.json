@@ -28,6 +28,11 @@
   "dependencies": {
     "@azure/identity": "4.14.1",
     "@azure/storage-blob": "12.34.0",
+    "@tiptap/core": "3.34.0",
+    "@tiptap/extension-image": "3.34.0",
+    "@tiptap/pm": "3.34.0",
+    "@tiptap/react": "3.34.0",
+    "@tiptap/starter-kit": "3.34.0",
     "mssql": "12.7.14",
     "next": "16.4.6",
     "react": "19.3.1",

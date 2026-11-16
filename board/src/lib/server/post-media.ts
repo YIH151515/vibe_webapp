@@ -38,7 +38,7 @@ export async function persistPostWithMedia(pool: ConnectionPool, id: number | nu
       if (!retained && !owned) throw conflict();
       inputBytes += safeBytes(asset.input_bytes);
     }
-    if (inputBytes > 20971520) throw conflict();
+    if (inputBytes > 20971520) throw conflict("글에 첨부할 이미지 원본 합계는 20MiB 이하로 줄여 주세요.");
     const request = new sql.Request(tx).input("id", sql.BigInt, id).input("hash", sql.VarChar(256), expectedPasswordHash)
       .input("title", sql.NVarChar(100), input.title).input("content", sql.NVarChar(sql.MAX), input.content)
       .input("nickname", sql.NVarChar(20), input.nickname).input("format", sql.VarChar(8), input.contentFormat)

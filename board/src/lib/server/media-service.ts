@@ -30,7 +30,7 @@ export function createMediaService(pool: ConnectionPool, store: BlobStore) {
         const existing = (await new sql.Request(tx).input("sid", sql.UniqueIdentifier, session.id).input("key", sql.UniqueIdentifier, key)
           .query("SELECT * FROM dbo.image_assets WITH(UPDLOCK,HOLDLOCK) WHERE session_id=@sid AND idempotency_key=@key")).recordset[0];
         if (existing) { if (existing.state !== "ready") throw conflict(); return existing; }
-        if (current.file_count >= 5) throw conflict();
+        if (current.file_count >= 5) throw conflict("이미지는 편집 세션당 최대 5장입니다. 이미지를 줄이거나 다시 편집해 주세요.");
         const capacity = (await new sql.Request(tx).query("SELECT occupied_bytes FROM dbo.media_capacity WHERE id=1")).recordset[0];
         if (safeBytes(capacity.occupied_bytes) + MAX_IMAGE_BYTES > 1073741824) throw new BoardError("STORAGE_FULL", 409, "이미지 저장 공간이 가득 찼습니다.");
         const id = randomUUID();
@@ -61,7 +61,8 @@ export function createMediaService(pool: ConnectionPool, store: BlobStore) {
         if (deadline.signal.aborted) throw mediaUnavailable();
         const current = (await new sql.Request(tx).input("sid", sql.UniqueIdentifier, session.id)
           .query("SELECT * FROM dbo.upload_sessions WITH(UPDLOCK,HOLDLOCK) WHERE id=@sid AND state='active' AND expires_at>SYSUTCDATETIME()")).recordset[0];
-        if (!current || safeBytes(current.input_bytes) + input.bytes.length > 20971520) throw conflict();
+        if (!current) throw conflict();
+        if (safeBytes(current.input_bytes) + input.bytes.length > 20971520) throw conflict("이미지 원본 합계는 20MiB 이하로 줄여 주세요.");
         const updated = await new sql.Request(tx).input("id", sql.UniqueIdentifier, ownId).input("sid", sql.UniqueIdentifier, session.id)
           .input("bytes", sql.Int, input.bytes.length).input("sha", sql.Char(64), sha).query(`
             UPDATE dbo.image_assets SET input_bytes=@bytes,input_sha256=@sha,blob_write_started=1

@@ -1,7 +1,7 @@
 # Plan: 자유 게시판 웹 에디터와 이미지 업로드
 
 - Date: 2026-11-16
-- Status: in_progress
+- Status: completed
 - Decisions: [확정 결정](../decisions/2026-11-16-rich-editor-images.md)
 - Branch: feature/rich-editor-images (실행 T01에서 생성; 계획 단계에서는 생성하지 않음)
 
@@ -11,8 +11,8 @@ Tiptap3 MIT 에디터로 작성/수정하고, private Azure Blob의 JPEG/PNG/Web
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | in_progress | 문서 스키마·이미지 저장·API·정리 수명 관리 | [P01](../phases/2026-11-16-rich-editor-images/P01-media-backend/phase.md) |
-| P02 | pending | 에디터 UI·Azure Blob 인프라·공개 릴리스 | [P02](../phases/2026-11-16-rich-editor-images/P02-editor-delivery/phase.md) |
+| P01 | completed | 문서 스키마·이미지 저장·API·정리 수명 관리 | [P01](../phases/2026-11-16-rich-editor-images/P01-media-backend/phase.md) |
+| P02 | completed | 에디터 UI·Azure Blob 인프라·공개 릴리스 | [P02](../phases/2026-11-16-rich-editor-images/P02-editor-delivery/phase.md) |
 
 ## Task roadmap
 | 순서 | Task | 주요 파일/결과 |
@@ -41,12 +41,15 @@ P01은 파일과 글이 별도 시스템이어도 고아 파일·소유권 오�
 - Tiptap3.34.0은 React19 peer를 확인했다. Azure SDK/identity/sharp Node engines는24 호환을 npm 메타데이터로 확인했다. 설치는 실행 단계에서 exact pin한다. Azurite3.37.0 태그 가용성은 실행 때 검사한다.
 
 ## Definition of Done
-- [ ] 7개 Task와 모든 격리 회귀/빌드 통과.
-- [ ] 기존 plain 글 무변경·검색·비밀번호·관리자 정책 유지, 서식/이미지 신규·수정·상세 PC/모바일 성공.
-- [ ] 운영 Blob private/TLS/SharedKeyOff/컨테이너 범위 앱ID·로컬 역할, soft delete7일 확인.
-- [ ] SQL/Blob 실패·중복·정리 경쟁·byte/capacity 한도, QA 자기 데이터만 정리.
-- [ ] 실제 main Actions 성공 SHA, 이미지 새로고침/재시작/수정/삭제/정리와 rollback baseline 기록.
-- [ ] plan/phase/current completed, 비밀 없이 운영 기록과 비용/복원 절차 갱신.
+- [x] 7개 Task와 모든 격리 회귀/빌드 통과.
+- [x] 기존 plain 글 무변경·검색·비밀번호·관리자 정책 유지, 서식/이미지 신규·수정·상세 PC/모바일 성공.
+- [x] 운영 Blob private/TLS/SharedKeyOff/컨테이너 범위 앱ID·로컬 역할, soft delete7일 확인.
+- [x] SQL/Blob 실패·중복·정리 경쟁·byte/capacity 한도, QA 자기 데이터만 정리.
+- [x] 실제 main Actions 성공 SHA, 이미지 새로고침/재시작/수정/삭제/정리와 rollback baseline 기록.
+- [x] plan/phase/current completed, 비밀 없이 운영 기록과 비용/복원 절차 갱신.
 
 ## Adjacent findings
 이번 범위 밖에서 새로 발견한 별도 결함 없음. schema3 health 고정값/일반 텍스트 DTO/관리자 직접 DELETE/JSON64KiB는 이 기능을 위해 반드시 함께 바꿀 부분으로 Task에 포함했다. 기존 개발 의존성 경고의 major 갱신, 사용자 next-env 변경/루트 도구 정리는 포함하지 않는다.
+
+## Completion
+전체7/7 완료. 실제 운영 commit77fe827b4ca69cfc9a82cf79688133a1e72ba920, Actions43826431986 success. SQL4/두flag1, private Blob와 실제 이미지·브라우저·재시작·관리자·정리 검증 성공. Task 완료 문서a264b3f와 이후 포인터 문서는 재배포하지 않는다. baseline/396bytes7일 보존/복구·비용·한계는 board/docs/images-runbook.md에 기록했다. Active Task 없음.

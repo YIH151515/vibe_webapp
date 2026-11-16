@@ -22,7 +22,8 @@
     "verify:azure": "node scripts/verify-azure.mjs",
     "provision:sql": "tsx scripts/provision-sql.ts",
     "verify:sql-access": "tsx scripts/verify-sql-access.ts",
-    "verify:live": "tsx scripts/verify-live.ts"
+    "verify:live": "tsx scripts/verify-live.ts",
+    "media:cleanup": "tsx scripts/media-cleanup.ts"
   },
   "dependencies": {
     "@azure/identity": "4.14.1",

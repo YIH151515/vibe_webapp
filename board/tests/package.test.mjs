@@ -40,7 +40,7 @@ test("release ZIP runs independently, serves assets and fails health safely with
     const reservation = createServer().listen(0, "127.0.0.1");
     await once(reservation, "listening"); const port = reservation.address().port;
     await new Promise(done => reservation.close(done));
-    child = spawn(process.execPath, ["server.js"], { cwd: temp, env: { ...env, HOSTNAME: "0.0.0.0", PORT: String(port) }, stdio: "ignore" });
+    child = spawn(process.execPath, ["server.js"], { cwd: temp, env: { ...env, WEBSITE_INSTANCE_ID: "package-check", MEDIA_CLEANUP_ENABLED: "0", HOSTNAME: "0.0.0.0", PORT: String(port) }, stdio: "ignore" });
     const base = `http://127.0.0.1:${port}`;
     let response;
     for (let i = 0; i < 100; i++) {

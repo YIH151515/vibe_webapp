@@ -99,7 +99,7 @@ export function createMediaService(pool: ConnectionPool, store: BlobStore) {
             DELETE dbo.image_delete_jobs WHERE asset_id=@id;
             UPDATE dbo.media_capacity SET occupied_bytes=occupied_bytes-@charge WHERE id=1;
             UPDATE dbo.upload_sessions SET file_count=file_count-1,input_bytes=input_bytes-@input WHERE id=@sid;
-            UPDATE dbo.image_assets SET state='purged',post_id=NULL,charge_bytes=0 WHERE id=@id;
+            UPDATE dbo.image_assets SET state='purged',post_id=NULL,charge_bytes=0,deleted_at=SYSUTCDATETIME(),purge_after=SYSUTCDATETIME() WHERE id=@id;
           `);
       });
       if (error instanceof BoardError) throw error;

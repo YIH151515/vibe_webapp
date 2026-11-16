@@ -131,3 +131,9 @@ JSON 요청은 Content-Length와 실제 읽은 바이트 모두 64KiB 이하로 
 ESLint 9.39.5는 현재 Next.js lint 플러그인 호환성 때문에 유지하고 있으며 지원 종료 경고가 있습니다. 2026-11-13 검사 결과 개발 의존성에는 중간 수준 경고 13건(기존 lint 및 새 Testcontainers의 archiver/glob 계열)이 있었으며, 운영 의존성은 `npm audit --omit=dev`에서 0건이었습니다. Testcontainers를 구버전 major로 바꾸는 강제 수정은 적용하지 않았습니다. 호환되는 개발 도구 업데이트를 별도로 검토해야 합니다.
 
 SQL 드라이버는 Next.js `serverExternalPackages: ["mssql"]`로 Node에서 직접 로드합니다. OS별 실행 파일 경로를 번들러가 해석하다 Windows 빌드가 실패하는 것을 방지하는 설정이므로 유지하세요.
+
+## 이미지 수명과 수동 정리
+
+이미지는 private Blob에 보관하며 게시된 글과 연결된 파일만 앱의 `/api/images/{id}`로 공개합니다. 초안은 24시간 후 정리하고, 글에서 제거한 이미지는 즉시 공개를 중단한 뒤 outbox로 삭제를 재시도합니다. Azure soft delete 보존 7일 동안은 전체 1GiB 용량에서 차감하지 않습니다. 늦게 나타난 파일도 SQL에서 추적한 경로만 재확인하며 전체 컨테이너를 훑어 삭제하지 않습니다.
+
+`npm run media:cleanup -- --limit 100`은 삭제 대기 건수만 읽는 dry-run입니다. `--apply`를 명시해야 실제 정리가 실행됩니다. 운영자 CLI는 로컬 `.env.local`의 정확한 운영 SQL·Blob 설정과 Azure CLI 인증을 사용하므로 적용 전 대상 환경을 확인하세요. 자동 정리는 Azure Node 런타임에서 `MEDIA_CLEANUP_ENABLED=1`일 때만 10분 간격으로 실행합니다. 테스트는 운영 자격증명과 `.env.local`을 사용하지 않습니다. Azurite에는 soft delete가 없으므로 실제 CRUD는 Azurite로, 7일 보존·장애 회계는 fake clock으로 검증합니다.

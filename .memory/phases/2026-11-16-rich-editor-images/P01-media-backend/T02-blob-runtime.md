@@ -110,7 +110,7 @@ Task: T02-blob-runtime
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: d8bb41e
 
 ## Execution Notes
 - 최종 검증: npm run test:all 전체60개(서비스/보안/문서/미디어35 + API15 + E2E10), typecheck/lint/build, npm run verify:azure(Linux Node24.22.3, ZIP native/SDK/root/CSS/health503), git diff --check 통과. 소유 SQL/Azurite 컨테이너 정리 완료. next-env.d.ts의 기존 사용자 dev 경로 변경은 보존하고 stage하지 않았다.

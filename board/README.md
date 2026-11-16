@@ -2,13 +2,15 @@
 
 Next.js + Azure SQL로 운영하는 비회원 게시판입니다. 회원가입 없이 닉네임과 비밀번호로 글을 작성합니다. **[공개 게시판](https://app-vibe-board-prod-7b1417.azurewebsites.net)** · [관리자 화면](https://app-vibe-board-prod-7b1417.azurewebsites.net/admin). GitHub main 검사 후 OIDC 자동 배포와 실제 공개 검증을 완료했습니다.
 
+글 작성·수정은 Tiptap 오픈소스 에디터를 사용합니다. 굵게·기울임·밑줄·제목·목록·인용·링크와 이미지 선택/붙여넣기/드롭을 지원합니다. JPEG·PNG·WebP를 장당5MiB, 글당5장/합20MiB까지 선택하고 저장할 때 업로드합니다. 실제 운영 이미지 게시·수정·검색·재시작·관리자 삭제와 PC/모바일 검증을 완료했습니다. 저장소·비용·복구·정리 절차는 [이미지 운영 안내](docs/images-runbook.md)를 참고하세요.
+
 ## Azure 배포 패키지와 자동 검사
 
 실제 리소스·비밀값 보관·GitHub 인증·구축/검증 절차는 [Azure 운영 기록](docs/azure-runbook.md)을 참고합니다. 생성된 리소스는 앱 공개 전에도 요금이 발생합니다.
 
 Windows에서는 `npm run verify:azure`로 Node24 Linux 컨테이너에서 독립 빌드·ZIP·HTTP/CSS 검증을 실행합니다. 운영 환경파일은 복사하지 않습니다. Linux CI에서는 `npm run build:azure` → `npm run package:azure` → `node --test tests/package.test.mjs` 순서입니다. 기본 `npm run build`는 기존 로컬 빌드를 유지합니다.
 
-`.deploy/board.zip`은 server.js와 필요한 node_modules/.next/static/public을 포함하고 환경파일·DB·키를 제외합니다. `.deploy/release.json`은 Git commit과 ZIP SHA256만 기록합니다. `/api/health`는 SQL 및 스키마3이 준비되면 상태와 배포 버전을, 준비되지 않으면 상세정보 없는503을 반환합니다.
+`.deploy/board.zip`은 server.js와 필요한 node_modules/.next/static/public을 포함하고 환경파일·DB·키를 제외합니다. `.deploy/release.json`은 Git commit과 ZIP SHA256만 기록합니다. `/api/health`는 SQL 및 스키마4가 준비되면 상태와 배포 버전을, 준비되지 않으면 상세정보 없는503을 반환합니다.
 
 GitHub Actions는 PR/main에서 격리 SQL 전체 테스트 후 동일 ZIP을 배포합니다. 배포 변수 `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_WEBAPP_NAME`, `AZURE_RESOURCE_GROUP`가 없으면 배포 job은 **skipped**이며 공개 배포가 완료된 것이 아닙니다. OIDC subject는 `repo:YIH151515@355682187/vibe_webapp@1456296194:ref:refs/heads/main`입니다. SQL/관리자 암호는 GitHub 변수나 artifact에 넣지 않습니다. 배포는 OIDC로 인증하고 ZIP 해시·최종 health 버전을 검사합니다. 공식 action의 확인한 안정 tag를 commit SHA로 고정했습니다: [checkout](https://github.com/actions/checkout/releases/tag/v7.0.1), [setup-node](https://github.com/actions/setup-node/releases/tag/v7.1.0), [upload-artifact](https://github.com/actions/upload-artifact/releases/tag/v7.0.2), [download-artifact](https://github.com/actions/download-artifact/releases/tag/v8.0.2), [Azure login](https://github.com/Azure/login/releases/tag/v3.1.0), [webapps-deploy v3](https://github.com/Azure/webapps-deploy/tree/v3).
 
@@ -124,7 +126,7 @@ GET /api/posts?q=&page=1, POST /api/posts, GET/PATCH/DELETE /api/posts/{id}를 �
 
 JSON 요청은 Content-Length와 실제 읽은 바이트 모두 64KiB 이하로 제한하며 초과 시 413을 반환합니다. 일반 글의 최대 길이는 그대로 유지합니다. 소멸한 제한 기록은 만료 후 24시간이 지나면 소량씩 정리합니다. 프로세스가 시도 중 중단되면 예약은 현재 윈도우 만료까지 보수적으로 남을 수 있습니다.
 
-설정이 없는 쓰기 요청은 503으로 안내합니다. 실제 Azure 프런트엔드가 client-ip를 덮어쓰는지는 최종 배포 검증에서 확인해야 합니다.
+설정이 없는 쓰기 요청은 503으로 안내합니다. 실제 Azure 프런트엔드의 client-ip 덮어쓰기는 공개 검증에서 확인했습니다. 이미지 업로드도 조작한 전달 헤더 대신 동일한 실제 출발지에 토큰을 묶습니다.
 
 ## 알려진 개발 도구 제한
 

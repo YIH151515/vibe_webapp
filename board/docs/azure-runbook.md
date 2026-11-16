@@ -4,6 +4,12 @@
 
 Azure 리소스 생성과 실제 검증을 완료했다. Bicep/Validate/WhatIf/Apply/Verify, migration2회, 제한된 SQL 계정의 CRUD/DDL 거부, 글0개/schema3 검증이 통과했다. GitHub 변수5개 등록 후 main 자동 배포가 성공했고 공개 환경의 CRUD·관리자·프록시 IP·제한·재시작·브라우저 검증도 통과했다.
 
+## 현재 이미지 에디터 릴리스
+
+2026-11-16 schema4로 전환하고 `77fe827b4ca69cfc9a82cf79688133a1e72ba920`을 운영에 배포했다. [성공 Actions43826431986](https://github.com/YIH151515/vibe_webapp/actions/runs/43826431986)의 전체93개 검사와 OIDC/ZIP/실제 health 검증이 통과했다. EDITOR_FEATURE_ENABLED=1, MEDIA_CLEANUP_ENABLED=1이며 private Blob `stvibeboardimg7b1417/board-images`는 런타임 system identity로 접근한다. 기존 B1 x1/SQLBasic2GB 등급은 유지했다.
+
+실제 공개 QA로 이미지 게시·서식·검색·PC1280/모바일390·수정/제거/추가·재시작 후 동일 파일 유지·관리자 삭제/로그아웃을 검증했다. QA 글과 삭제 대기 작업은0, 파일은 soft-delete3개/396bytes를7일 보존하고 있다(07:57:16Z 조회). 자세한 정책·권한·비용·복구/검증 도구는 [이미지 운영 안내](images-runbook.md)를 따른다. **schema4 이후 아래 최초 schema3 ZIP으로 복구하지 않는다.** 최종 schema4 baseline ZIP SHA256은 `26e7d087d6497b758d5052b06ccd409815602e80c4043a71fb98ddc2b9421d7f`이며 `.deploy/compat-schema4`에 manifest와 보관했다. 문서만 갱신한 HEAD와 실제 실행 SHA는 다를 수 있다.
+
 ## 최초 배포 증거
 
 | 항목 | 결과 |

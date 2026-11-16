@@ -57,7 +57,7 @@ npm run media:cleanup -- --apply --limit 100  # 정확한 운영 환경/권한 �
 
 ## 배포와 복구
 
-schema4 전환 전에 `.deploy/compat-schema4/board.zip`과 release.json의 commit/SHA256을 확인한다. 마지막 Task에서 flag0 상태로 운영 migration·grants·제한 계정 검증을 수행한 뒤 main Actions를 배포하고 `/api/health.version`을 실제 배포 SHA와 대조한다. 이 Task에서는 운영 migration을 하지 않는다. 정상 main Actions의 flag0 호환 패키지를 최종 최소 rollback 기준으로 보관한다.
+schema4 운영 전환과 migration·grants·제한 계정 검증을 완료했다. `.deploy/compat-schema4/board.zip`과 release.json의 commit/SHA256을 확인하고 해당 패키지를 최소 rollback 기준으로 사용한다. 복구 시 flag0에서 기존 문서 읽기/일반 글 서비스를 유지하며 `/api/health.version`을 manifest commit과 대조한다.
 
 릴리스 실패 시 DB를 되돌리지 않고 검증한 호환 ZIP을 배포해 flag0에서 읽기와 일반 글을 회복한다. schema4 이후 과거 schema3 ZIP, 역migration, 운영 데이터 초기화는 사용하지 않는다. rich 문서와 이미지 metadata/Blob을 보존한다. GitHub artifact는14일 후 만료하므로 baseline ZIP·manifest를 별도 안전 보관한다. `.deploy`는 Git에서 제외되며 비밀값을 포함하지 않는다.
 
@@ -88,3 +88,26 @@ DB PITR이 필요하면 uploads/자동 cleanup을 멈추고 별도 DB로 복원�
 검증은 임의 UUID 접두어의 글 최대2개와 세션 최대4개, 파일 예약 최대5개만 사용한다(flag0 검증 글1개는 별도). Chromium 파일 선택·서식·1280/390px·검색·수정·이미지 소유권·초안 비공개·Origin·형식/크기·실제 App Service 재시작·관리자 삭제/로그아웃을 검사한다. 자동 테스트는 격리 SQL/Azurite에서 같은 도구를 먼저 실행한다. 운영 브라우저 trace와 요청 본문/자격증명은 기록하지 않는다.
 
 정리는 메모리에 있는 본인 세션 토큰의 해시로 SQL asset 소유권을 확인한 UUID만 worker에 전달한다. 응답 유실 시에도 본인 UUID 접두어와 작성자 비밀번호를 확인해 글을 삭제한다. 다른 운영 글·이미지·제한 카운터는 변경하지 않는다. 삭제된 파일은 공개 경로에서 즉시404이며 Azure의 실제 deleted marker와7일 용량 보류를 확인한다. 파일 예약이 변환 전에 실패한 경우 파일 없이 즉시 환급될 수 있다. 검증은 제한 윈도우를 소비하므로429는 Retry-After의 자연 만료를 기다리고 카운터를 초기화하지 않는다.
+
+## 최종 공개 결과 — 2026-11-16
+
+| 항목 | 실제 결과 |
+| --- | --- |
+| URL | https://app-vibe-board-prod-7b1417.azurewebsites.net |
+| 실행 commit | 77fe827b4ca69cfc9a82cf79688133a1e72ba920 |
+| 성공 Actions | https://github.com/YIH151515/vibe_webapp/actions/runs/43826431986 |
+| baseline ZIP SHA256 | 26e7d087d6497b758d5052b06ccd409815602e80c4043a71fb98ddc2b9421d7f |
+| baseline 위치 | .deploy/compat-schema4/board.zip + release.json; 실제 Actions 다운로드와 해시/commit 대조 |
+| schema / flags | SQL4 / EDITOR_FEATURE_ENABLED=1 / MEDIA_CLEANUP_ENABLED=1 |
+| API·보안 | MI 업로드·WebP 앱 경유 조회/HEAD/ETag304, Blob 직접 익명 거부, 초안404, 다른 글 이미지 참조409/무변경, Origin·오답403, 타인token401, 위장MIME415/5MiB초과413 |
+| 실제 브라우저 | 파일 선택·굵게·검색·1280/390px 상세/툴바·비밀번호 빈 입력·가로 넘침 없음 |
+| 수정·영속성 | 기존 이미지 유지/새 이미지 추가/제거404·작성일 불변, 실제 App Service restart 후 문서와 파일 bytes 동일 |
+| 관리자 | 브라우저 로그인, 동의 없는 삭제400/동의 삭제204/이미지404, 로그아웃 후 이전 cookie401 |
+| 정리 | own QA 잔여 글0/노출 이미지0/삭제 jobs0, Azure deleted marker와7일 charge 보류 확인 |
+| 용량 집계 | 2026-11-16T07:57:16Z occupied_bytes=396=SUM(charge_bytes), soft_deleted3개/396bytes, 사전 쓰기 실패 purged2개/0bytes; 실제 파일을 전부 물리 삭제한 것은 아님 |
+| 검사 | 로컬93개(서비스54/API18/E2E21), CI 전체93개·typecheck/lint/build·독립 Linux ZIP/sharp/SDK/root/CSS, 실제 storage 정책/SQL limited grants 검증 통과 |
+| 최종 App | Running; health HTTP200/statusok/version 위 commit 일치 |
+
+SQL 전환은07:40:58Z에 시작했다. 최초 Actions43825539447은 테스트용 FormData encoder 조기 취소 뒤 비동기 오류로 실패해 호환6d7b5d9 ZIP/flags0로 복구했다. DB는 되돌리지 않았으며 일반 글 작성·조회·정리/rich·session·upload503을 실제 확인했다. 헤더 거부 테스트를 wire bytes 입력으로 보완한 뒤 Linux 반복20회 및 최종 Actions 전체 회귀가 통과했다. 최종77fe827 배포에서는 flag0 health/version/일반 textarea/차단을 재확인했다. 일반 글 QA를 중복 생성하지 않고 총3개 이내를 지켰으며, flags1 후 실제 이미지 QA를 완료했다. 운영 기록에 암호·토큰·쿠키·원문 IP·원본 파일명·이미지 dump를 남기지 않았다.
+
+GitHub artifact 보존14일과 별개로 이 로컬 baseline을 안전한 별도 위치에도 보관한다. 기존 전환 전6d7b5d9 baseline은 `.deploy/pre-transition-schema4`에 남겨 두었으며, 정상 배포된77fe827 패키지를 우선 사용한다. 완료 문서 commit은 배포를 유발하지 않으며 실행 버전은 health를 기준으로 판단한다.

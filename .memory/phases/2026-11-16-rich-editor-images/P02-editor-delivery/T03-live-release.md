@@ -1,6 +1,6 @@
 # Task: T03 이미지 에디터 공개와 운영 인계
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 schema4 호환 릴리스와 실제 이미지 게시·수정·재시작·삭제·정리를 검증하고 운영 안내와 전체 completed 상태를 남긴다.
@@ -97,11 +97,11 @@ verifyLiveMedia(input:LiveMediaCheck,dependencies:{adminPassword:string;operator
 
 
 ## Acceptance Criteria
-- [ ] 실제 main Actions/health SHA와 schema4 flag0 baseline·flag1 활성화가 일치하고 런타임 private Blob 접근이 성공한다.
-- [ ] 자기 QA로 서식·이미지·수정·검색·재시작·관리자 삭제·출발지/소유권을 검증하고 다른 운영 글은 변경하지 않았다.
-- [ ] QA 글·노출 이미지·삭제 작업 정리를 확인하고 soft-delete7일 보존 용량/재시도와 실행 중 App 상태를 기록했다.
-- [ ] 운영·비용·복구·비밀 없는 증거 및 전체7/7 completed 포인터가 실제 상태와 일치한다.
-- [ ] 기존 동작 회귀와 아래 Validation이 모두 통과하고 비밀·사용자 변경이 stage되지 않았다.
+- [x] 실제 main Actions/health SHA와 schema4 flag0 baseline·flag1 활성화가 일치하고 런타임 private Blob 접근이 성공한다.
+- [x] 자기 QA로 서식·이미지·수정·검색·재시작·관리자 삭제·출발지/소유권을 검증하고 다른 운영 글은 변경하지 않았다.
+- [x] QA 글·노출 이미지·삭제 작업 정리를 확인하고 soft-delete7일 보존 용량/재시도와 실행 중 App 상태를 기록했다.
+- [x] 운영·비용·복구·비밀 없는 증거 및 전체7/7 completed 포인터가 실제 상태와 일치한다.
+- [x] 기존 동작 회귀와 아래 Validation이 모두 통과하고 비밀·사용자 변경이 stage되지 않았다.
 
 ## Validation
 - `npm run test:all` — 새 변경을 포함한 전체 회귀 성공.
@@ -128,9 +128,9 @@ Task: T03-live-release
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: f217407 (구현), 77fe827 (실제 배포); 완료 문서 commit은 phase 기록
 
 ## Next Task
 없음. 공개 QA와 안전한 정리 후 전체 completed.
@@ -138,7 +138,12 @@ Task: T03-live-release
 ## Execution Notes
 - 릴리스 준비: rich payload에서 중복 평문 content를 제외하고9,000자/교차서식 문서 수정 회귀를 추가했다. JSON64KiB 한도는 유지한다.
 - verify-live-media 도구와 DPAPI→stdin wrapper를 구현했다. 격리 smoke에서 실제 Chromium과 SQL/Azurite로 own QA·수정·관리자·정리를 검증했다.
-- 전체93개(서비스54/API18/E2E21), typecheck/lint/workflow 검사 통과. 운영 SQL 전환/Actions/실제 Blob 검증은 아직 완료 전이며 이 준비 커밋으로 완료를 주장하지 않는다.
+- 전체93개(서비스54/API18/E2E21), typecheck/lint/workflow 검사 통과. 이는 준비 커밋 시점의 검사이며 실제 운영 증거는 아래 최종 결과를 따른다.
 - 운영 SQL4 migration2회와 제한 앱 권한 검증 완료(2026-11-16T07:40:58Z). 기존 글0개를 실제 조회했으며 초기화를 하지 않았다.
 - 첫 Actions43825539447은 서비스 테스트의 Node FormData 조기 취소 뒤 unhandled rejection으로 실패했다. SQL을 되돌리지 않고6d7b5d9 호환 ZIP/flags0로 즉시 복구했으며 health·일반 글 작성/조회/정리·rich/session/upload503을 실제 검증했다. 공개 QA 잔여0.
-- 헤더만으로 거부하는 테스트 입력을 미리 직렬화한 multipart wire bytes로 교체했다. 실 요청의 bounded read/cancel 구현은 유지한다. 별도 Linux Node24.22.3에서 미디어 테스트20회 반복 통과. 최종 Actions 성공/활성화 전까지 완료로 표시하지 않는다.
+- 헤더만으로 거부하는 테스트 입력을 미리 직렬화한 multipart wire bytes로 교체했다. 실 요청의 bounded read/cancel 구현은 유지한다. 별도 Linux Node24.22.3에서 미디어 테스트20회 반복 통과. 이후 최종 Actions 전체 회귀에서도 재검증했다.
+
+- 최종 완료: 실제 main77fe827b4ca69cfc9a82cf79688133a1e72ba920 / Actions43826431986 success / health200 SQL4 / 두flags1. flag0 일반 글 호환·차단과 flag1 MI 이미지 업로드/서식/검색/1280·390px/수정/재시작/관리자 삭제·logout 검증 통과.
+- 최종 baseline은 실제 Actions artifact로 교체·검증: SHA25626e7d087d6497b758d5052b06ccd409815602e80c4043a71fb98ddc2b9421d7f, .deploy/compat-schema4에 ZIP/manifest 보관. 전환 전 baseline도 별도 보존.
+- 07:57:16Z 집계: QA글0/전체글0/삭제jobs0, soft_deleted3개396bytes + purged2개0bytes, 원장합계396 일치. 실제 Azure deleted marker/7일 보존 확인. 자체 QA만 정리하고 한도·기존 데이터를 초기화하지 않았다. App Running, 사용자3000/Docker pad 및 next-env 변경/루트 도구 보존.
+- 학습: post-editor는 document만 전송하여 JSON64KiB 한도 내 큰 rich 수정이 가능하다. private Blob은 앱 route에서 SQL 소유권을 먼저 확인하고 공개하며, 삭제 시 공개 접근과 물리 보존/용량 환급은 서로 다른 시점이다. 함께 보완한 것은 중복 payload와 Node FormData 테스트 입력이며 별도 후속 결함은 특이사항 없음.

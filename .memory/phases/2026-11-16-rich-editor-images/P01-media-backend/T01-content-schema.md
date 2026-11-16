@@ -123,7 +123,7 @@ Task: T01-content-schema
 - 테스트 준비 실패는 raw SQL/credentials 없이 code/number만 진단하도록 wrapper를 보완했다. 운영 SQL/Blob/Azure/main에는 변경하지 않았다. Docker 기동 후 소유 테스트 컨테이너를 정리했고 사용자 pad/3000서버는 중지하지 않았다.
 - build가 만든 next-env 경로 변경은 이전 파일과 두 import 경로만 달라진 것을 확인한 뒤 이번 생성분만 되돌렸다. 기존 사용자 변경은 미커밋 상태로 보존한다.
 - 후속 미디어 회계 참고: mssql BIGINT는 문자열로 반환된다. 바이트 한도/occupied_bytes 연산은 T03에서 안전한 정수 변환을 확인해야 한다. 이번 테스트는 Number 변환 후1GiB 이내 값 경계를 검증했다.
-- commit: pending
+- commit: aa6ac86
 
 ## Next Task
 P01-media-backend/T02-blob-runtime.md

@@ -1,28 +1,26 @@
 # Current Context
 
 ## Active Plan
-[자유 게시판 Azure 공개 운영](./plans/2026-11-13-free-board-azure.md)
+[웹 에디터와 이미지 업로드](./plans/2026-11-16-rich-editor-images.md)
 
 ## Active Phase
-없음 — P01/P02 모두 completed.
+[P01 이미지 백엔드와 수명 관리](./phases/2026-11-16-rich-editor-images/P01-media-backend/phase.md)
 
 ## Active Task
-없음 — 전체6개 Task 완료.
+[P01-T02 Blob·이미지 처리와 Azurite 격리](./phases/2026-11-16-rich-editor-images/P01-media-backend/T02-blob-runtime.md)
 
 ## Status
-- completed / done: 6/6 / 완료일: 2026-11-16
-- P02-T03 완료 (commit: 2c5b2ac), P01 3/3 및 P02 3/3 완료
-- 서비스19개/API14개/브라우저10개 총43개 및 typecheck/lint/build, Linux ZIP 기동·assets·503·비밀파일 배제, workflow 검사 통과
-- P02-T02 완료 (commit: a1148a2), Azure·SQL 실제 생성 및 검증 완료
-- Bicep/Validate/WhatIf/Apply/Verify, migration2회, SQL CRUD허용·DDL거부·글0개/schema3, local health200/admin401 확인
-- 2026-11-16 GitHub write 인증 및 배포 변수5개 등록·재조회 완료
-- main 정상 push 및 OIDC 자동 배포 성공. 실제 배포57fda56f9e28dbc33971323dd804b2268cee5a55, Actions https://github.com/YIH151515/vibe_webapp/actions/runs/43777945761
-- 공개 URL https://app-vibe-board-prod-7b1417.azurewebsites.net (관리자 /admin)
-- 실제 HTTPS CRUD·관리자·쿠키·Origin·조작 프록시 헤더/HMAC·429·재시작 영속성·1280/390px 브라우저 검증 통과. 소유 QA 전부 정리, 글0개/예약0 확인
-- 검증 출발지 작성 제한 만료2026-11-16 09:17:36 KST. 제한 카운터를 초기화하지 않았다. 문서 HEAD와 실제 실행 artifact SHA는 다를 수 있음
-- 운영 리소스는 생성 시점부터 과금됨(예상 기본 약24,782원/월, 세금 등 별도). 실제 값·DPAPI 비밀 보관/로그인 절차: board/docs/azure-runbook.md
-- Docker Linux 엔진 기동 확인, 테스트 전용 컨테이너 정리 완료
-- 기존 로컬 게시판 계획은 completed 상태로 보존
+- P01-T01 완료 (commit: aa6ac86), T02 구현 시작 준비 완료
+- done: 1/7 (P01 1/4, P02 0/3)
+- feature/rich-editor-images에서 문서/schema4/DTO/feature flag/기존글 호환 구현 완료. 운영 SQL·Azure·main 배포는 변경하지 않았다.
+- 전체52개(서비스·문서·보안27/API15/E2E10), typecheck/lint/build, git diff --check 통과. 소유 SQL 테스트 컨테이너 정리 완료.
+- schema4는 일회용 SQL에서만 검증했다. 현재 브랜치를 운영 SQL3에 연결해 사용하려고 migration을 앞당기지 않는다.
+- Tiptap3.34.0 + private Azure Blob + 5MiB/장·5장/글·20MiB/글, 전체 추적 용량1GiB
+- 이전 Azure 공개 운영 계획은 completed 6/6으로 보존: [기존 계획](./plans/2026-11-13-free-board-azure.md)
+- 기존 공개 앱은 마지막 검증 배포57fda56f9e28dbc33971323dd804b2268cee5a55, DEX/rg-vibe-board-prod/B1x1/SQLBasic2GB. 현 상태는 실행 전 재확인한다.
+- 로컬은 운영 SQL을 참조한다. Blob은 아직 도입 전이다. 테스트는 NODE_ENV=test + loopback SQL이며 T02에서 일회용 Azurite와 추가 guard를 도입한다.
+- 사용자 next-env.d.ts 미커밋 변경/루트 도구/기존 SQLite는 보존한다.
+- 추가 선택은 기존 사용자 지시에 따라 권고안으로 정했다. 부족한 실제 인증·권한만 실행 단계에서 요청한다.
 
 ## Next Step (IMPORTANT)
-이 계획은 완료됐다. 운영 방법·관리자 비밀번호 확인·백업·비용·롤백은 board/docs/azure-runbook.md를 따른다. 로컬도 운영 DB를 공유한다. 사용자3000포트 서버와 next-env.d.ts의 기존 미커밋 변경, 기존 SQLite 파일·루트 도구는 보존했다. 후속 기능은 프로젝트 인터뷰/계획 절차에 따라 별도 범위를 정한다.
+P01-T02 청사진 한 개를 읽고 private Blob 어댑터·sharp 이미지 변환·제한된 multipart body·Azurite 격리 fixture와 Linux native 패키지 검증을 구현한다. 현재 feature 브랜치를 유지하고 next-env.d.ts 사용자 변경을 보존한다. SQL BIGINT 반환값은 문자열일 수 있으므로 후속 byte/capacity 연산에서 안전한 숫자 변환이 필요하다. 운영 migration·main push·Azure 변경은 하지 않는다. 운영 Blob 준비는 P02-T02, 운영 schema4와 공개 활성화는 마지막 P02-T03에서만 수행한다.

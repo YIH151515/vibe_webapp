@@ -113,7 +113,7 @@ Task: T04-cleanup-worker
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: 6648ae9
 
 ## Next Task
 P02-editor-delivery/T01-editor-ui.md

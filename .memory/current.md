@@ -4,17 +4,17 @@
 [웹 에디터와 이미지 업로드](./plans/2026-11-16-rich-editor-images.md)
 
 ## Active Phase
-[P01 이미지 백엔드와 수명 관리](./phases/2026-11-16-rich-editor-images/P01-media-backend/phase.md)
+[P02 에디터 UI와 Azure 공개](./phases/2026-11-16-rich-editor-images/P02-editor-delivery/phase.md)
 
 ## Active Task
-[P01-T04 정리 worker·장애/보존 회계](./phases/2026-11-16-rich-editor-images/P01-media-backend/T04-cleanup-worker.md)
+[P02-T01 Tiptap 편집·업로드 UX·안전한 상세 표시](./phases/2026-11-16-rich-editor-images/P02-editor-delivery/T01-editor-ui.md)
 
 ## Status
 - 사용자 요청(2026-11-16): 에디터·이미지 업로드까지 완성한 뒤 운영에 배포하고 URL을 안내한다(선택1). 남은 Task를 순서대로 자동 연속 실행하며, P02-T03의 안전한 schema4 전환/Actions 배포/실제 QA까지 완료한다. 기반 코드만 먼저 배포하는 선택은 하지 않았다.
-- P01-T03 완료 (commit: 6575af3), T04 구현 시작 준비 완료
-- done: 3/7 (P01 3/4, P02 0/3)
+- P01-T04 완료 (commit: 6648ae9), P02-T01 구현 시작 준비 완료
+- done: 4/7 (P01 4/4, P02 0/3)
 - feature/rich-editor-images에서 문서/schema4/DTO/feature flag/기존글 호환 구현 완료. 운영 SQL·Azure·main 배포는 변경하지 않았다.
-- 전체60개(서비스·문서·보안·미디어35/API15/E2E10), typecheck/lint/build, verify:azure, git diff --check 통과. Linux ZIP의 sharp native 변환/두 Azure SDK import/root/CSS/health503 확인. 소유 SQL/Azurite 테스트 컨테이너 정리 완료.
+- 서비스·문서·보안·미디어·정리51/API17/E2E10 총78개, typecheck/lint/build, verify:azure, git diff --check 통과. Linux ZIP의 sharp native 변환/두 Azure SDK import/root/CSS/health503 확인. 소유 SQL/Azurite 테스트 컨테이너 정리 완료.
 - schema4는 일회용 SQL에서만 검증했다. 현재 브랜치를 운영 SQL3에 연결해 사용하려고 migration을 앞당기지 않는다.
 - Tiptap3.34.0 + private Azure Blob + 5MiB/장·5장/글·20MiB/글, 전체 추적 용량1GiB
 - 이전 Azure 공개 운영 계획은 completed 6/6으로 보존: [기존 계획](./plans/2026-11-13-free-board-azure.md)
@@ -26,4 +26,4 @@
 - 추가 선택은 기존 사용자 지시에 따라 권고안으로 정했다. 부족한 실제 인증·권한만 실행 단계에서 요청한다.
 
 ## Next Step (IMPORTANT)
-P01-T04 청사진을 읽고 outbox/유실 업로드/만료 세션/7일 soft-delete 용량 보존을 다루는 정리 worker를 구현한다. T03 세션·원자 연결·삭제·요청/바이트 예약 구현 완료. 검증은 서비스43/API17/E2E10 및 typecheck/lint/build 통과. 현재 feature 브랜치를 유지하고 next-env.d.ts 사용자 변경을 보존한다. SQL BIGINT는 safeBytes로 변환한다. 다음 Task도 자동 연속 실행하여 에디터·운영 배포까지 완료한다. 운영 migration·main push·Azure 변경은 P02 준비/릴리스 순서를 지킨다.
+P02-T01 청사진을 읽고 Tiptap3.34.0 에디터/파일 선택·붙여넣기·drop/업로드 상태·이탈 정리/안전한 React 상세 renderer를 구현한다. backend 세션·원자 연결·삭제와 cleanup worker 구현 완료. startMediaCleanup은 Azure Node+flag에서만 기동하며 late object는 durable outbox로 다시 처리한다. 현재 feature 브랜치를 유지하고 next-env.d.ts 사용자 변경을 보존한다. SQL BIGINT는 safeBytes로 변환한다. 남은 Task를 자동 연속 실행하여 에디터·운영 배포까지 완료한다. 운영 migration·main push·Azure 변경은 P02 준비/릴리스 순서를 지킨다.

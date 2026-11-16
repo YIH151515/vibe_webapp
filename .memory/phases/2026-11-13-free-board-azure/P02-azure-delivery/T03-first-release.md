@@ -1,6 +1,6 @@
 # Task: T03 최초 공개와 운영 인계
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 검증된 main 코드를 지정한 GitHub 저장소에 처음 올려 실제 Azure HTTPS 배포를 완료하고 운영 방법과 완료 증거를 남긴다.
@@ -85,9 +85,9 @@ verifyLive(input:LiveCheck):Promise<{deployedCommit:string;checks:string[];qaPos
   5. 완료 커밋을 지정 메시지로 남기고 Task done/phase3/3, plan completed, current Active Task 없음/completed로 동기화한다. 메모리 커밋이 추가되면 실행 코드는 바뀌지 않으며 문서 갱신만으로 재배포를 반복하지 않는다.
 
 ## Acceptance Criteria
-- [ ] 실제 GitHub main workflow와 Azure HTTPS 게시판이 배포SHA로 검증됨.
-- [ ] 공개 CRUD·관리자·프록시IP·제한·재시작 영속성과 QA 정리 완료.
-- [ ] 비밀값 없이 운영 문서와 전체 completed 포인터가 실제 상태와 일치함.
+- [x] 실제 GitHub main workflow와 Azure HTTPS 게시판이 배포SHA로 검증됨.
+- [x] 공개 CRUD·관리자·프록시IP·제한·재시작 영속성과 QA 정리 완료.
+- [x] 비밀값 없이 운영 문서와 전체 completed 포인터가 실제 상태와 일치함. 완료 커밋 뒤 phase/plan/current를 완료 동기화한다.
 
 ## Validation
 - npm run test:all / npm run typecheck / npm run lint / npm run build / npm run verify:azure — 배포 전 변경분을 포함한 성공 기록.
@@ -114,8 +114,11 @@ Task: T03-first-release
 - 배포 전 전체43개(서비스19/API14/E2E10), typecheck/lint/build, Linux ZIP 기동·CSS·health503·비밀파일 배제와 workflow 검사 통과. CLI 진입부는 Playwright CJS 변환과도 호환되도록 직접 실행 경로 비교로 분리했다.
 - 최초 준비 commit/push: 5e63d1fcc85579f94bfb29e78b097ae7874be303 (main→origin/main). 강제 push 없이 기존 이력을 보존했다. Actions https://github.com/YIH151515/vibe_webapp/actions/runs/43777374241 진행 중.
 - 첫 run은 verify/패키징 모두 성공 후 OIDC AADSTS700213으로 로그인 실패했다. 실제 assertion이 immutable owner/repo ID 형식임을 공식 문서와 GitHub API(owner355682187/repo1456296194)로 확인해 Azure 연합 subject/Bicep/운영검사를 해당 저장소 main 한정 형식으로 갱신했다. 역할 범위와 SQL 인증/TLS는 유지했다.
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과. 실제 배포57fda56f9e28dbc33971323dd804b2268cee5a55 / Actions https://github.com/YIH151515/vibe_webapp/actions/runs/43777945761 verify/deploy 모두 success.
+- [x] 공개 URL https://app-vibe-board-prod-7b1417.azurewebsites.net 에서 verify-live.ps1 성공: health/version·root/CSS·CRUD/Origin/date·admin/cookie/consent·Chromium1280/390·restart/persistent-SQL/session·proxy-IP/HMAC/shared-window/429·logout/replay거부.
+- [x] 소유 QA 글 전부 정리, 전체 글0개/진행 예약0 확인. 작성 제한은 조작하지 않았고 만료2026-11-16 09:17:36 KST(초기Retry-After589초) 기록. 비밀번호와 쿠키는 stdin/프로세스 메모리만 사용.
+- [x] Docker에는 기존 사용자 pad 컨테이너만 남고 사용자3000 서버/next-env.d.ts 기존 변경은 보존했다. 운영 App Service Running/health200 유지. 백업7일·Local, 비용·비밀교체·firewall·rollback 절차를 실제 운영 기록에 포함했다.
 - commit: pending
 
 ## Next Task

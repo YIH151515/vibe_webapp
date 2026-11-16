@@ -1,8 +1,26 @@
 # 자유 게시판 Azure 운영 기록
 
-2026-11-13 구축 중. 아직 GitHub 최초 릴리스가 끝나지 않았으므로 아래 주소는 **게시판 공개 완료를 뜻하지 않는다**.
+2026-11-16 최초 공개와 운영 검증 완료. 공개 주소: **https://app-vibe-board-prod-7b1417.azurewebsites.net**. 관리자 화면은 같은 주소의 `/admin`이다.
 
-Azure 리소스 생성과 실제 검증은 완료했다. Bicep/Validate/WhatIf/Apply/Verify, migration2회, 제한된 SQL 계정의 CRUD/DDL 거부, 글0개/schema3 검증이 통과했다. 기존 로컬 개발 서버의 health200과 관리자 미인증401도 확인했다. 2026-11-16 GitHub 인증 및 배포 변수5개 등록·재조회도 완료했으며 최초 공개 릴리스가 남았다.
+Azure 리소스 생성과 실제 검증을 완료했다. Bicep/Validate/WhatIf/Apply/Verify, migration2회, 제한된 SQL 계정의 CRUD/DDL 거부, 글0개/schema3 검증이 통과했다. GitHub 변수5개 등록 후 main 자동 배포가 성공했고 공개 환경의 CRUD·관리자·프록시 IP·제한·재시작·브라우저 검증도 통과했다.
+
+## 최초 배포 증거
+
+| 항목 | 결과 |
+| --- | --- |
+| 실제 배포 commit | 57fda56f9e28dbc33971323dd804b2268cee5a55 |
+| 성공 Actions | https://github.com/YIH151515/vibe_webapp/actions/runs/43777945761 |
+| 실행 결과 | verify → artifact SHA256 → OIDC → ZIP 배포 → health/version 모두 성공 |
+| 공개 health | HTTP200 / status ok / version 위 commit과 일치 |
+| 공개 화면 | 홈페이지·CSS200, Chromium1280/390px 검색·긴 본문·비밀번호 빈 입력·관리자 로그인/로그아웃·가로 넘침 없음 |
+| API 검증 | 작성·조회·오답 무변경·수정·작성일 유지·삭제404·다른 Origin403 |
+| 관리자 | 미인증401, Secure/HttpOnly/SameSite=Strict/Path 쿠키, 동의 없는 삭제400, 관리자 삭제204, 로그아웃 토큰 재사용401 |
+| IP·제한 | 서로 다른 client-ip/x-forwarded-for/x-client-ip에도 실제 출발지의 같은 HMAC 버킷에 누적, 여섯 번째 작성429/Retry-After |
+| 재시작 | 실제 az webapp restart 후 health 버전·QA 글·관리자 세션·작성 제한 유지 |
+| 정리 | 소유 QA 글 모두 삭제. 검증 직후 전체 글0개, 진행 중 예약0. 테스트용 서버·컨테이너 정리, 운영 App은 Running 유지 |
+| 자동 검사 | 로컬 및 GitHub 서비스19/API14/E2E10 총43개, typecheck/lint/build, 실제 Linux ZIP 기동·CSS·DB 없는 health503·비밀파일 배제 통과 |
+
+작성 제한 검증 직후 Retry-After589초였다. 동일 출발지의 글 작성 제한 만료는 **2026-11-16 09:17:36 KST**이며 제한을 임의 초기화하지 않았다. 조회·수정·삭제와 다른 출발지는 이 작성 제한의 영향을 받지 않는다. 이 기록은 당시 검증 증거이며 이후 사용량과는 별개다.
 
 ## 리소스와 예산
 
@@ -84,7 +102,7 @@ node scripts/configure-github.mjs
 
 수동 등록 위치는 Repository Settings → Secrets and variables → Actions → Variables이다. SQL/관리자 암호를 등록하지 않는다. 실제 OIDC subject는 `repo:YIH151515@355682187/vibe_webapp@1456296194:ref:refs/heads/main`, issuer는 GitHub, audience는 `api://AzureADTokenExchange`이다. 첫 실행에서 이름만 있는 subject와 불일치하여, GitHub API로 검증한 owner/repository ID를 포함하는 immutable subject로 수정했다. [GitHub OIDC 공식 문서](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims) 형식과 일치하며 이 저장소의 main만 허용한다. Website Contributor는 이 Web App 범위에만 부여한다. 장기 client secret이나 Entra 앱 등록은 만들지 않았다.
 
-T02의 실제 설정 검증 완료 후 `/memory-execute`가 T03 최초 push·배포·실제 CRUD/관리자/제한·재시작 영속성 검증을 수행한다. 인증이 없다고 Task를 완료로 표시하거나 임의 수동 배포로 자동 배포 검증을 대체하지 않는다. 배포 완료 후 실제 commit/run/검증 결과와 운영 백업·복구 절차를 이 문서에 추가한다.
+T02와 T03의 실제 설정·공개 배포 검증을 완료했다. 이후 README/docs/.memory만 갱신하는 완료 커밋은 재배포를 유발하지 않으므로 Git main의 HEAD와 위 실제 배포 commit은 다를 수 있다. 실행 버전은 `/api/health`로 확인한다.
 
 ## 공개 검증과 운영 절차
 

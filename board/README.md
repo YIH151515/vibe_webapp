@@ -1,6 +1,6 @@
 # 자유 게시판
 
-Next.js + Azure SQL로 만드는 비회원 게시판입니다. 회원가입 없이 닉네임과 비밀번호로 글을 작성합니다. Linux 배포 패키지와 CI가 준비되어 있으며, Azure 리소스 생성과 공개 배포는 후속 Task에서 진행합니다.
+Next.js + Azure SQL로 운영하는 비회원 게시판입니다. 회원가입 없이 닉네임과 비밀번호로 글을 작성합니다. **[공개 게시판](https://app-vibe-board-prod-7b1417.azurewebsites.net)** · [관리자 화면](https://app-vibe-board-prod-7b1417.azurewebsites.net/admin). GitHub main 검사 후 OIDC 자동 배포와 실제 공개 검증을 완료했습니다.
 
 ## Azure 배포 패키지와 자동 검사
 

@@ -7,11 +7,12 @@
 [P01 이미지 백엔드와 수명 관리](./phases/2026-11-16-rich-editor-images/P01-media-backend/phase.md)
 
 ## Active Task
-[P01-T03 업로드 소유권·공유 제한·글/파일 API](./phases/2026-11-16-rich-editor-images/P01-media-backend/T03-media-api.md)
+[P01-T04 정리 worker·장애/보존 회계](./phases/2026-11-16-rich-editor-images/P01-media-backend/T04-cleanup-worker.md)
 
 ## Status
-- P01-T02 완료 (commit: d8bb41e), T03 구현 시작 준비 완료
-- done: 2/7 (P01 2/4, P02 0/3)
+- 사용자 요청(2026-11-16): 에디터·이미지 업로드까지 완성한 뒤 운영에 배포하고 URL을 안내한다(선택1). 남은 Task를 순서대로 자동 연속 실행하며, P02-T03의 안전한 schema4 전환/Actions 배포/실제 QA까지 완료한다. 기반 코드만 먼저 배포하는 선택은 하지 않았다.
+- P01-T03 완료 (commit: 6575af3), T04 구현 시작 준비 완료
+- done: 3/7 (P01 3/4, P02 0/3)
 - feature/rich-editor-images에서 문서/schema4/DTO/feature flag/기존글 호환 구현 완료. 운영 SQL·Azure·main 배포는 변경하지 않았다.
 - 전체60개(서비스·문서·보안·미디어35/API15/E2E10), typecheck/lint/build, verify:azure, git diff --check 통과. Linux ZIP의 sharp native 변환/두 Azure SDK import/root/CSS/health503 확인. 소유 SQL/Azurite 테스트 컨테이너 정리 완료.
 - schema4는 일회용 SQL에서만 검증했다. 현재 브랜치를 운영 SQL3에 연결해 사용하려고 migration을 앞당기지 않는다.
@@ -25,4 +26,4 @@
 - 추가 선택은 기존 사용자 지시에 따라 권고안으로 정했다. 부족한 실제 인증·권한만 실행 단계에서 요청한다.
 
 ## Next Step (IMPORTANT)
-P01-T03 청사진 한 개를 읽고 업로드 세션/소유권/공유 제한/이미지 업로드·조회 API와 글 연결을 구현한다. T02의 readImageFile/normalizeImage/getBlobStore 및 mediaFixture/FakeBlobStore를 재사용한다. 현재 feature 브랜치를 유지하고 next-env.d.ts 사용자 변경을 보존한다. SQL BIGINT 반환값은 문자열일 수 있으므로 byte/capacity 연산에서 안전한 숫자 변환이 필요하다. 운영 migration·main push·Azure 변경은 하지 않는다. 운영 Blob 준비는 P02-T02, 운영 schema4와 공개 활성화는 마지막 P02-T03에서만 수행한다.
+P01-T04 청사진을 읽고 outbox/유실 업로드/만료 세션/7일 soft-delete 용량 보존을 다루는 정리 worker를 구현한다. T03 세션·원자 연결·삭제·요청/바이트 예약 구현 완료. 검증은 서비스43/API17/E2E10 및 typecheck/lint/build 통과. 현재 feature 브랜치를 유지하고 next-env.d.ts 사용자 변경을 보존한다. SQL BIGINT는 safeBytes로 변환한다. 다음 Task도 자동 연속 실행하여 에디터·운영 배포까지 완료한다. 운영 migration·main push·Azure 변경은 P02 준비/릴리스 순서를 지킨다.

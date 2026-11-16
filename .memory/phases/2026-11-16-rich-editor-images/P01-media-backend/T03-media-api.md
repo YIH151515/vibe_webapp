@@ -151,7 +151,7 @@ Task: T03-media-api
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: 6575af3
 
 ## Next Task
 P01-media-backend/T04-cleanup-worker.md

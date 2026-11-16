@@ -1,6 +1,6 @@
 # Task: T02 private Blob 인프라와 배포 준비
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 기존 공개 앱을 유지하면서 private Blob·앱 system identity·최소 data 역할과 비활성 설정을 실제 준비한다.
@@ -77,10 +77,10 @@ verifyImageAccess(client:ContainerClient):Promise<{containerReadable:boolean;pri
 
 
 ## Acceptance Criteria
-- [ ] 지정 RG에 private HotLRS/TLS/SharedKeyOff/soft delete7일과 컨테이너 범위 런타임·로컬 data 역할이 실제 존재한다.
-- [ ] 기존 B1·SQL3·공개 health는 유지되고 파일 쓰기/운영 migration 없이 로컬 컨테이너 조회와 익명 거부만 검증했다.
-- [ ] 비활성 이미지 설정과 검증된 schema4 전환 실패 회복용 ZIP/SHA가 준비됐고 실제 비용·역할·설정이 기록됐다.
-- [ ] 기존 동작 회귀와 아래 Validation이 모두 통과하고 비밀·사용자 변경이 stage되지 않았다.
+- [x] 지정 RG에 private HotLRS/TLS/SharedKeyOff/soft delete7일과 컨테이너 범위 런타임·로컬 data 역할이 실제 존재한다.
+- [x] 기존 B1·SQL3·공개 health는 유지되고 파일 쓰기/운영 migration 없이 로컬 컨테이너 조회와 익명 거부만 검증했다.
+- [x] 비활성 이미지 설정과 검증된 schema4 전환 실패 회복용 ZIP/SHA가 준비됐고 실제 비용·역할·설정이 기록됐다.
+- [x] 기존 동작 회귀와 아래 Validation이 모두 통과하고 비밀·사용자 변경이 stage되지 않았다.
 
 ## Validation
 - 루트 `az bicep build --file infra/azure/images.bicep --stdout` — 성공.
@@ -110,9 +110,9 @@ Task: T02-azure-storage
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: 6d7b5d9
 
 ## Next Task
 P02-editor-delivery/T03-live-release.md
@@ -123,3 +123,5 @@ P02-editor-delivery/T03-live-release.md
 - 앱·로컬 이미지 설정0 적용 후 기존 SQL3 health/version57fda56f9e28dbc33971323dd804b2268cee5a55 정상. 운영 migration/Blob 파일 쓰기 없음. local 컨테이너 속성 조회/익명 거부 검증 성공.
 - 익명 HEAD의 기본 서비스 버전은 Azure에서409를 반환했다. 공식 응답 계약에 맞춰2023-11-03을 명시하고401도 허용한다. 인증된 getProperties private 및 ARM 정책 검증과 함께 판단한다. 보안 정책을 바꾸지 않았다.
 - 전체91개(서비스54/API17/E2E20), typecheck/lint/build/diff check 통과. 동일 source commit의 복구용 ZIP을 증명하기 위해 구현을 먼저 커밋한 뒤 verify:azure를 수행하고, 완료/다음 포인터는 그 결과 이후 별도 문서 커밋에서 확정한다.
+
+- Linux verify:azure 성공 후 검증 ZIP 보관: .deploy/compat-schema4/board.zip, source6d7b5d9238db9cb2d7977db93ab9f4709aea9528, SHA2562dd907e71cbf2f24bb959c4d185f208b731f91d4ea36b37910309f9b0ea96c4a. manifest/실제 hash 일치 확인.

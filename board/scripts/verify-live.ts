@@ -40,7 +40,7 @@ export async function verifyLive(input: LiveCheck, dependencies: Dependencies) {
     assert.equal(response.status, 201, "QA create HTTP");
     const post = await response.json() as Post;
     owned.set(post.id, title);
-    assert.deepEqual(Object.keys(post).sort(), ["content","createdAt","id","nickname","title"]);
+    assert.deepEqual(Object.keys(post).sort(), ["content","contentFormat","createdAt","document","id","nickname","title"]);
     const current = await bucket();
     assert.ok(current && current.used_count === index && current.pending_count === 0, "Proxy headers must retain the real source's shared HMAC bucket");
     return post;

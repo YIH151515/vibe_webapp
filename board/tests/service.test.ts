@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import sql from "mssql";
+import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type { PostInput } from "../src/lib/posts/types";
-import { assertTestDatabase, closeDatabase, getDatabase, readSqlConfig } from "../src/lib/server/database";
+import { assertTestDatabase, closeDatabase, getDatabase, openDatabase, readSqlConfig } from "../src/lib/server/database";
 import { migrateDatabase } from "../src/lib/server/migrations";
 import { BoardError } from "../src/lib/server/errors";
 import { hashPassword, verifyPassword } from "../src/lib/server/password";
@@ -10,6 +13,7 @@ import { createPostService } from "../src/lib/server/posts";
 import { toErrorResponse } from "../src/lib/server/http";
 import { parseListQuery, parsePasswordInput, parsePostId, parsePostInput } from "../src/lib/server/validation";
 import { sqlFixture } from "./helpers/sql-fixture";
+import { normalizeDocument, plainToDocument } from "../src/lib/posts/document";
 
 const input: PostInput = {
   title: "첫 번째 글", content: "본문 내용", nickname: "작성자", password: " password ",
@@ -26,10 +30,12 @@ test("CRUD persists across SQL reconnections and returns only public fields", as
     const created = await f.service.create({
       ...input, title: "  제목  ", content: "  첫 줄\r\n둘째 줄  ", nickname: "  별명  ",
     });
-    assert.deepEqual(Object.keys(created).sort(), ["content", "createdAt", "id", "nickname", "title"]);
+    assert.deepEqual(Object.keys(created).sort(), ["content", "contentFormat", "createdAt", "document", "id", "nickname", "title"]);
     assert.equal(created.title, "제목");
     assert.equal(created.content, "첫 줄\n둘째 줄");
     assert.equal(created.nickname, "별명");
+    assert.equal(created.contentFormat, "plain");
+    assert.equal(created.document, null);
     assert.ok(Number.isSafeInteger(created.id));
     assert.equal(new Date(created.createdAt).toISOString(), created.createdAt);
     const before = (await f.pool.request().input("id", sql.BigInt, String(created.id))
@@ -181,7 +187,7 @@ test("migration is concurrent-safe, idempotent and refuses a future schema", asy
       await Promise.all([migrateDatabase(f.pool), migrateDatabase(another)]);
     } finally { await another.close(); }
     const versions = (await f.pool.request().query("SELECT version FROM dbo.schema_migrations ORDER BY version")).recordset;
-    assert.deepEqual(versions, [{ version: 1 }, { version: 2 }, { version: 3 }]);
+    assert.deepEqual(versions, [{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
     const created = await f.service.create({ ...input, title: "보존" });
     await migrateDatabase(f.pool);
     assert.equal((await f.service.get(created.id)).title, "보존");
@@ -242,4 +248,96 @@ test("shared pool connects once and a rejected connection can recover", async ()
     const recovered = await getDatabase();
     assert.equal((await recovered.request().query("SELECT 1 AS ok")).recordset[0].ok, 1);
   } finally { await closeDatabase(); }
+});
+
+test("schema3 upgrade preserves existing rows byte-for-byte and creates empty media accounting", async () => {
+  assertTestDatabase(process.env);
+  const config = readSqlConfig(process.env), name = "board_test_" + randomUUID().replaceAll("-", "");
+  const master = await openDatabase({ ...config, database: "master" });
+  let pool: sql.ConnectionPool | undefined, created = false;
+  try {
+    await master.request().batch(`CREATE DATABASE [${name}]`); created = true;
+    pool = await openDatabase({ ...config, database: name });
+    // Build the real previous schema from the untouched historical migrations.
+    await pool.request().batch(`CREATE TABLE dbo.schema_migrations(
+      version INT NOT NULL PRIMARY KEY, applied_at DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME())`);
+    for (const [index, filename] of ["001-posts.sql", "002-rate-buckets.sql", "003-admin-sessions.sql"].entries()) {
+      await pool.request().batch(await readFile(resolve("sql", filename), "utf8"));
+      await pool.request().input("version", sql.Int, index + 1).query("INSERT dbo.schema_migrations(version) VALUES(@version)");
+    }
+    const hash = await hashPassword(input.password), content = "<script>문자열</script>\n\nÄBC 한국어😀";
+    await pool.request().input("hash", sql.VarChar(256), hash).input("content", sql.NVarChar(sql.MAX), content)
+      .query(`INSERT dbo.posts(title,content,nickname,password_hash,created_at)
+        VALUES(N'원본 보존',@content,N'작성자',@hash,'2026-11-13T01:02:03.456')`);
+    const before = (await pool.request().query("SELECT id,title,content,nickname,password_hash,created_at FROM dbo.posts")).recordset;
+    await migrateDatabase(pool); await migrateDatabase(pool);
+    const after = (await pool.request().query("SELECT id,title,content,nickname,password_hash,created_at FROM dbo.posts")).recordset;
+    assert.deepEqual(after, before);
+    const service = createPostService(pool), post = await service.get(Number(before[0].id));
+    assert.equal(post.content, content); assert.equal(post.document, null); assert.equal(post.contentFormat, "plain");
+    assert.equal((await service.list({ q: "Äbc", page: 1 })).total, 1);
+    assert.equal(Number((await pool.request().query("SELECT occupied_bytes FROM dbo.media_capacity WHERE id=1")).recordset[0].occupied_bytes), 0);
+    assert.equal((await pool.request().query("SELECT COUNT(*) AS n FROM dbo.media_maintenance WHERE name='image-cleanup' AND owner IS NULL")).recordset[0].n, 1);
+    assert.equal((await pool.request().query("SELECT COUNT(*) AS n FROM dbo.image_assets")).recordset[0].n, 0);
+    await assert.rejects(pool.request().query("INSERT dbo.media_capacity(id,occupied_bytes) VALUES(2,0)"));
+    await assert.rejects(pool.request().query("UPDATE dbo.media_capacity SET occupied_bytes=1073741825 WHERE id=1"));
+    await assert.rejects(pool.request().query("UPDATE dbo.posts SET content=N''"));
+  } finally {
+    await pool?.close();
+    try {
+      if (created && /^board_test_[a-f0-9]{32}$/.test(name)) {
+        await master.request().batch(`ALTER DATABASE [${name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [${name}]`);
+      }
+    } finally { await master.close(); }
+  }
+});
+
+test("rich text persists, searches only server text, keeps dates and cannot be flattened by legacy clients", async () => {
+  const f = await sqlFixture();
+  try {
+    const document = plainToDocument("서식 검색어 ALPHA\n한글 😀");
+    const rich = await f.service.create({ ...input, content: "가짜 검색 투영", document });
+    assert.equal(rich.contentFormat, "rich_v1"); assert.deepEqual(rich.document, normalizeDocument(document).document);
+    assert.equal((await f.service.list({ q: "alpha", page: 1 })).total, 1);
+    assert.equal((await f.service.list({ q: "가짜 검색 투영", page: 1 })).total, 0);
+    const another = await f.reopen();
+    try { assert.deepEqual(await createPostService(another).get(rich.id), rich); } finally { await another.close(); }
+    const updated = await f.service.update(rich.id, { ...input, document: plainToDocument("변경한 본문"), content: "무시되는 검색어" });
+    assert.equal(updated.content, "변경한 본문"); assert.equal(updated.createdAt, rich.createdAt);
+    await assert.rejects(f.service.update(rich.id, input), isError("MEDIA_CONFLICT", 409));
+    assert.deepEqual(await f.service.get(rich.id), updated);
+    const legacy = await f.service.create(input);
+    const converted = await f.service.update(legacy.id, { ...input, document: plainToDocument(legacy.content) });
+    assert.equal(converted.content, legacy.content); assert.equal(converted.createdAt, legacy.createdAt);
+    const previous = process.env.EDITOR_FEATURE_ENABLED;
+    try {
+      process.env.EDITOR_FEATURE_ENABLED = "0";
+      const plain = await f.service.create(input); assert.equal(plain.contentFormat, "plain");
+      await f.service.update(plain.id, { ...input, title: "일반 글 수정" });
+      await assert.rejects(f.service.create({ ...input, document }), isError("SERVICE_UNAVAILABLE", 503));
+      await assert.rejects(f.service.update(rich.id, { ...input, document }), isError("SERVICE_UNAVAILABLE", 503));
+      await assert.rejects(f.service.update(rich.id, input), isError("MEDIA_CONFLICT", 409));
+      await f.service.remove(rich.id, { password: input.password });
+    } finally { process.env.EDITOR_FEATURE_ENABLED = previous; }
+  } finally { await f.close(); }
+});
+
+test("unbound image writes are unavailable and malformed stored documents fail closed", async () => {
+  const f = await sqlFixture();
+  try {
+    const document = { version: 1 as const, type: "doc" as const, content: [
+      { type: "image" as const, attrs: { assetId: randomUUID(), alt: "첨부" } },
+    ] };
+    const normalized = normalizeDocument(document); assert.equal(normalized.text, "");
+    await assert.rejects(f.service.create({ ...input, document }), isError("SERVICE_UNAVAILABLE", 503));
+    const post = await f.service.create(input);
+    await assert.rejects(f.service.update(post.id, { ...input, document }), isError("SERVICE_UNAVAILABLE", 503));
+    assert.deepEqual(await f.service.get(post.id), post);
+    await f.pool.request().input("id", sql.BigInt, post.id).input("document", sql.NVarChar(sql.MAX), normalized.json)
+      .query("UPDATE dbo.posts SET content_format='rich_v1',content_json=@document,content=N'' WHERE id=@id");
+    assert.equal((await f.service.get(post.id)).document?.content[0].type, "image");
+    await f.pool.request().input("id", sql.BigInt, post.id)
+      .query("UPDATE dbo.posts SET content_json=N'{\"version\":99}' WHERE id=@id");
+    await assert.rejects(f.service.get(post.id), isError("SERVICE_UNAVAILABLE", 503));
+  } finally { await f.close(); }
 });

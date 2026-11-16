@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import sql, { type ConnectionPool } from "mssql";
 import { openDatabase, readSqlConfig } from "../src/lib/server/database";
+import { EXPECTED_SCHEMA_VERSION } from "../src/lib/server/schema-version";
 
 export async function verifySqlAccess(app: ConnectionPool, admin: ConnectionPool): Promise<void> {
   const marker = "qa-" + randomUUID();
@@ -19,7 +20,16 @@ export async function verifySqlAccess(app: ConnectionPool, admin: ConnectionPool
     const broad = await app.request().query<{owner:number;alter:number}>("SELECT IS_ROLEMEMBER('db_owner') AS [owner], HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','ALTER') AS [alter]");
     assert.equal(broad.recordset[0].owner, 0); assert.equal(broad.recordset[0].alter, 0);
     const schema = await app.request().query<{version:number}>("SELECT MAX(version) AS version FROM dbo.schema_migrations");
-    assert.equal(schema.recordset[0].version, 3);
+    assert.equal(schema.recordset[0].version, EXPECTED_SCHEMA_VERSION);
+    for (const table of ["posts", "rate_buckets", "admin_sessions", "upload_sessions", "image_assets", "media_capacity", "media_buckets", "media_reservations", "image_delete_jobs", "media_maintenance"]) {
+      const permission = await app.request().input("table", sql.NVarChar(128), "dbo." + table)
+        .query<{s:number;i:number;u:number;d:number}>(`SELECT
+          HAS_PERMS_BY_NAME(@table,'OBJECT','SELECT') AS s,
+          HAS_PERMS_BY_NAME(@table,'OBJECT','INSERT') AS i,
+          HAS_PERMS_BY_NAME(@table,'OBJECT','UPDATE') AS u,
+          HAS_PERMS_BY_NAME(@table,'OBJECT','DELETE') AS d`);
+      assert.deepEqual(permission.recordset[0], { s: 1, i: 1, u: 1, d: 1 });
+    }
     console.log("Encrypted app connection: CRUD allowed, DDL and db_owner denied.");
   } finally {
     if (id) await admin.request().input("id", sql.BigInt, id).input("marker", sql.NVarChar(100), marker).query("DELETE dbo.posts WHERE id=@id AND title=@marker");
@@ -37,7 +47,7 @@ try {
   if (process.argv.includes("--expect-empty")) {
     const count = await app.request().query<{total:number}>("SELECT COUNT(*) AS total FROM dbo.posts");
     assert.equal(count.recordset[0].total, 0);
-    console.log("Fresh production database has zero posts and schema version 3.");
+    console.log("Fresh production database has zero posts and the expected schema version.");
   }
 } catch (error) {
   const diagnostic = error as {code?:unknown;number?:unknown;name?:unknown};

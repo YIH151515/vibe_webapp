@@ -1,4 +1,5 @@
 import type { PostInput } from "../posts/types";
+import { normalizeDocument, DocumentValidationError } from "../posts/document";
 
 export function validatePassword(password: string): string | undefined {
   return password.length < 8 || password.length > 64 || !password.trim()
@@ -13,7 +14,15 @@ export function validatePost(input: PostInput): Record<string, string> {
     ["content", "본문", 1, 10000],
     ["nickname", "닉네임", 2, 20],
   ] as const) {
-    const value = (key === "content" ? input[key].replace(/\r\n/g, "\n") : input[key]).trim();
+    if (key === "content" && input.document != null) {
+      try { normalizeDocument(input.document); }
+      catch (error) {
+        if (error instanceof DocumentValidationError) errors.content = error.message;
+        else throw error;
+      }
+      continue;
+    }
+    const value = (key === "content" ? (input.content ?? "").replace(/\r\n/g, "\n") : input[key]).trim();
     if (value.length < min || value.length > max) errors[key] = `${label}은(는) ${min}~${max}자로 입력해 주세요.`;
   }
   const password = validatePassword(input.password);

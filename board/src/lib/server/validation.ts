@@ -1,4 +1,4 @@
-import type { PostInput } from "../posts/types";
+import { DocumentValidationError, normalizeDocument, type RichDocument } from "../posts/document";
 import { BoardError } from "./errors";
 
 function invalid(fieldErrors: Record<string, string>): never {
@@ -52,13 +52,34 @@ export function parsePasswordInput(value: unknown): { password: string } {
   return { password };
 }
 
-export function parsePostInput(value: unknown): PostInput {
+export type NormalizedPostInput = {
+  title: string; content: string; nickname: string; password: string;
+  contentFormat: "plain" | "rich_v1"; document: RichDocument | null; uploadSessionToken?: string;
+};
+
+export function parsePostInput(value: unknown): NormalizedPostInput {
   const input = objectInput(value);
+  let content: string, document: RichDocument | null = null;
+  if (input.document !== undefined && input.document !== null) {
+    try {
+      const normalized = normalizeDocument(input.document);
+      document = normalized.document;
+      content = normalized.text;
+    } catch (error) {
+      if (error instanceof DocumentValidationError) invalid({ content: error.message });
+      throw error;
+    }
+  } else content = text(input.content, "content", "본문", 1, 10000);
+  if (input.uploadSessionToken !== undefined && (typeof input.uploadSessionToken !== "string" ||
+    !/^[a-f0-9]{64}$/.test(input.uploadSessionToken) || input.uploadSessionToken.length !== 64)) {
+    invalid({ content: "이미지 업로드 세션을 확인해 주세요." });
+  }
   return {
     title: text(input.title, "title", "제목", 1, 100),
-    content: text(input.content, "content", "본문", 1, 10000),
+    content, contentFormat: document ? "rich_v1" : "plain", document,
     nickname: text(input.nickname, "nickname", "닉네임", 2, 20),
     password: parsePasswordInput(input).password,
+    ...(input.uploadSessionToken !== undefined ? { uploadSessionToken: input.uploadSessionToken as string } : {}),
   };
 }
 

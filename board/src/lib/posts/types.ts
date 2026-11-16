@@ -1,6 +1,10 @@
+import type { RichDocument } from "./document";
+
 export type PostInput = {
   title: string;
-  content: string;
+  content?: string;
+  document?: RichDocument | null;
+  uploadSessionToken?: string;
   nickname: string;
   password: string;
 };
@@ -12,7 +16,11 @@ export type PostSummary = {
   createdAt: string;
 };
 
-export type Post = PostSummary & { content: string };
+export type Post = PostSummary & {
+  content: string;
+  contentFormat: "plain" | "rich_v1";
+  document: RichDocument | null;
+};
 
 export type PostPage = {
   items: PostSummary[];
@@ -24,6 +32,8 @@ export type PostPage = {
 };
 
 export type ErrorCode =
+  | "MEDIA_CONFLICT"
+  | "STORAGE_FULL"
   | "VALIDATION_ERROR"
   | "INVALID_PASSWORD"
   | "NOT_FOUND"

@@ -4,10 +4,30 @@ import type { Post, PostInput } from "../src/lib/posts/types";
 import { toErrorResponse } from "../src/lib/server/http";
 import { seedPosts } from "./helpers/sql-fixture";
 import { closeDatabase } from "../src/lib/server/database";
+import { plainToDocument } from "../src/lib/posts/document";
 
 test.afterAll(() => closeDatabase());
 
 const origin = "http://127.0.0.1:3100";
+
+test("rich text API stores canonical content and refuses unsafe documents and legacy flattening", async ({ request }) => {
+  const data = input(), document = plainToDocument("실제 검색어\n서식 ALPHA");
+  const response = await request.post("/api/posts", { data: { ...data, content: "무시할 검색어", document } });
+  expect(response.status()).toBe(201);
+  const post = await response.json() as Post;
+  expect(post.contentFormat).toBe("rich_v1"); expect(post.document).toEqual(document);
+  expect(post.content).toBe("실제 검색어\n서식 ALPHA");
+  expect((await (await request.get("/api/posts?q=" + encodeURIComponent("실제 검색어"))).json()).total).toBe(1);
+  await expectError(await request.patch(`/api/posts/${post.id}`, { data }), 409, "MEDIA_CONFLICT");
+  const malformed = { ...document, content: [{ type: "html", content: "<script>alert(1)</script>" }] };
+  await expectError(await request.patch(`/api/posts/${post.id}`, { data: { ...data, document: malformed } }), 400, "VALIDATION_ERROR");
+  expect(await (await request.get(`/api/posts/${post.id}`)).json()).toEqual(post);
+  const updated = await request.patch(`/api/posts/${post.id}`, { data: { ...data, document: plainToDocument("수정된 본문") } });
+  expect(updated.status()).toBe(200); expect((await updated.json() as Post).createdAt).toBe(post.createdAt);
+  const images = { version: 1, type: "doc", content: [{ type: "image", attrs: { assetId: randomUUID(), alt: "첨부" } }] };
+  await expectError(await request.post("/api/posts", { data: { ...data, document: images } }), 503, "SERVICE_UNAVAILABLE");
+  expect((await request.delete(`/api/posts/${post.id}`, { data: { password: data.password } })).status()).toBe(204);
+});
 
 test("health confirms current SQL schema without exposing configuration", async ({ request }) => {
   const response = await request.get("/api/health");
@@ -29,7 +49,7 @@ async function create(request: APIRequestContext, data: PostInput): Promise<Post
   expect(response.headers()["cache-control"]).toBe("no-store");
   const post = await response.json() as Post;
   expect(response.headers().location).toBe(`/posts/${post.id}`);
-  expect(Object.keys(post).sort()).toEqual(["content", "createdAt", "id", "nickname", "title"]);
+  expect(Object.keys(post).sort()).toEqual(["content", "contentFormat", "createdAt", "document", "id", "nickname", "title"]);
   return post;
 }
 

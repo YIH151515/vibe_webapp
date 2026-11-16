@@ -3,6 +3,9 @@ import type { Post, PostInput, PostPage, PostSummary } from "../posts/types";
 import { BoardError } from "./errors";
 import { hashPassword, verifyPassword } from "./password";
 import { parseListQuery, parsePasswordInput, parsePostId, parsePostInput } from "./validation";
+import type { NormalizedPostInput } from "./validation";
+import { normalizeDocument } from "../posts/document";
+import { editorEnabled } from "./editor-config";
 
 export interface PostService {
   list(input: { q: string; page: number }): Promise<PostPage>;
@@ -18,6 +21,8 @@ type PostRow = {
   nickname: string;
   created_at: Date;
   content: string;
+  content_format: "plain" | "rich_v1";
+  content_json: string | null;
 };
 
 function checkId(id: number): void {
@@ -38,11 +43,21 @@ function summary(row: PostRow): PostSummary {
 }
 
 function post(row: PostRow): Post {
-  return { ...summary(row), content: row.content };
+  if (row.content_format === "plain" && row.content_json === null) {
+    return { ...summary(row), content: row.content, contentFormat: "plain", document: null };
+  }
+  if (row.content_format === "rich_v1" && row.content_json !== null) {
+    try {
+      const normalized = normalizeDocument(JSON.parse(row.content_json));
+      if (normalized.text !== row.content) throw new Error("Invalid content projection");
+      return { ...summary(row), content: row.content, contentFormat: "rich_v1", document: normalized.document };
+    } catch { /* Stored data is never treated as trusted HTML. */ }
+  }
+  throw new BoardError("SERVICE_UNAVAILABLE", 503, "본문을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
 }
 
 const columns = "id, title, nickname, created_at";
-const outputColumns = "inserted.id, inserted.title, inserted.nickname, inserted.created_at, inserted.content";
+const outputColumns = "inserted.id, inserted.title, inserted.nickname, inserted.created_at, inserted.content, inserted.content_format, inserted.content_json";
 const lowerAscii = (value: string) => value.replace(/[A-Z]/g, character => character.toLowerCase());
 const searchCondition = `WHERE
   TRANSLATE(title COLLATE Latin1_General_100_BIN2,
@@ -52,17 +67,30 @@ const searchCondition = `WHERE
     N'ABCDEFGHIJKLMNOPQRSTUVWXYZ', N'abcdefghijklmnopqrstuvwxyz')
     LIKE @pattern COLLATE Latin1_General_100_BIN2 ESCAPE N'\\'`;
 
-function postValues(request: sql.Request, input: PostInput): sql.Request {
+function postValues(request: sql.Request, input: NormalizedPostInput): sql.Request {
   return request.input("title", sql.NVarChar(100), input.title)
     .input("content", sql.NVarChar(sql.MAX), input.content)
-    .input("nickname", sql.NVarChar(20), input.nickname);
+    .input("nickname", sql.NVarChar(20), input.nickname)
+    .input("format", sql.VarChar(8), input.contentFormat)
+    .input("document", sql.NVarChar(sql.MAX), input.document ? JSON.stringify(input.document) : null);
+}
+
+function checkRichWrite(input: NormalizedPostInput): void {
+  if (!input.document) return;
+  if (!editorEnabled() || normalizeDocument(input.document).imageIds.length) {
+    throw new BoardError("SERVICE_UNAVAILABLE", 503, "서식 또는 이미지 저장 기능을 준비 중입니다. 잠시 후 다시 시도해 주세요.");
+  }
+}
+
+function plainConflict(): never {
+  throw new BoardError("MEDIA_CONFLICT", 409, "서식이 있는 글은 서식을 유지하는 에디터로 수정해 주세요.");
 }
 
 export function createPostService(pool: ConnectionPool): PostService {
   async function get(id: number): Promise<Post> {
     checkId(id);
     const result = await pool.request().input("id", sql.BigInt, String(id))
-      .query<PostRow>(`SELECT ${columns}, content FROM dbo.posts WHERE id = @id`);
+      .query<PostRow>(`SELECT ${columns}, content, content_format, content_json FROM dbo.posts WHERE id = @id`);
     return result.recordset[0] ? post(result.recordset[0]) : notFound();
   }
 
@@ -109,22 +137,31 @@ export function createPostService(pool: ConnectionPool): PostService {
     },
     async create(input) {
       const normalized = parsePostInput(input);
+      checkRichWrite(normalized);
       const hash = await hashPassword(normalized.password);
       const result = await postValues(pool.request(), normalized)
         .input("hash", sql.VarChar(256), hash)
-        .query<PostRow>(`INSERT INTO dbo.posts (title, content, nickname, password_hash)
-          OUTPUT ${outputColumns} VALUES (@title, @content, @nickname, @hash)`);
+        .query<PostRow>(`INSERT INTO dbo.posts (title, content, nickname, password_hash, content_format, content_json)
+          OUTPUT ${outputColumns} VALUES (@title, @content, @nickname, @hash, @format, @document)`);
       return post(result.recordset[0]);
     },
     async update(id, input) {
       checkId(id);
       const normalized = parsePostInput(input);
+      checkRichWrite(normalized);
       const hash = await authorize(id, normalized.password);
+      if (normalized.contentFormat === "plain" && (await get(id)).contentFormat === "rich_v1") plainConflict();
       const result = await postValues(pool.request(), normalized)
         .input("id", sql.BigInt, String(id)).input("hash", sql.VarChar(256), hash)
-        .query<PostRow>(`UPDATE dbo.posts SET title = @title, content = @content, nickname = @nickname
-          OUTPUT ${outputColumns} WHERE id = @id AND password_hash = @hash`);
-      return result.recordset[0] ? post(result.recordset[0]) : notFound();
+        .query<PostRow>(`UPDATE dbo.posts SET title = @title, content = @content, nickname = @nickname,
+            content_format = @format, content_json = @document
+          OUTPUT ${outputColumns} WHERE id = @id AND password_hash = @hash
+            AND (@format = 'rich_v1' OR content_format = 'plain')`);
+      if (result.recordset[0]) return post(result.recordset[0]);
+      // A concurrent conversion to rich must never be overwritten by a legacy writer.
+      const current = await get(id);
+      if (normalized.contentFormat === "plain" && current.contentFormat === "rich_v1") plainConflict();
+      return notFound();
     },
     async remove(id, input) {
       checkId(id);

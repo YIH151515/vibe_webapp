@@ -38,7 +38,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
       expect(page.url()).not.toContain(password);
       const id = Number(new URL(page.url()).pathname.split("/").pop());
       const publicPost = await (await request.get(`/api/posts/${id}`)).json();
-      expect(Object.keys(publicPost).sort()).toEqual(["content", "createdAt", "id", "nickname", "title"]);
+      expect(Object.keys(publicPost).sort()).toEqual(["content", "contentFormat", "createdAt", "document", "id", "nickname", "title"]);
       const date = await page.locator("article time").getAttribute("datetime");
       await noOverflow(page);
       await page.screenshot({ path: `test-results/board-post-${viewport.width}.png`, fullPage: true });

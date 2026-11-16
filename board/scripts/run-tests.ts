@@ -13,11 +13,12 @@ type Mode = "service" | "api" | "e2e" | "all";
 function testEnvironment(container: StartedMSSQLServerContainer): NodeJS.ProcessEnv {
   const env = { ...process.env };
   for (const key of Object.keys(env)) {
-    if (key.startsWith("SQL_") || key.startsWith("ADMIN_") || key.startsWith("RATE_LIMIT_") ||
+    if (/^(SQL_|ADMIN_|RATE_LIMIT_|EDITOR_|MEDIA_|STORAGE_|AZURITE_)/.test(key) ||
       ["DATABASE_PATH", "APP_TEST_MODE", "APP_ORIGIN", "REQUEST_IP_MODE", "LOCAL_CLIENT_IP", "WEBSITE_INSTANCE_ID"].includes(key)) delete env[key];
   }
   return {
     ...env, NODE_ENV: "test", APP_TEST_MODE: "1", APP_ORIGIN: "http://127.0.0.1:3100",
+    EDITOR_FEATURE_ENABLED: "1", MEDIA_CLEANUP_ENABLED: "0",
     REQUEST_IP_MODE: "test", RATE_LIMIT_KEY_SECRET: randomBytes(32).toString("hex"),
     SQL_SERVER: container.getHost(), SQL_PORT: String(container.getPort()),
     SQL_DATABASE: "board_test_" + randomUUID().replaceAll("-", ""),
@@ -102,8 +103,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   } else {
     void runSqlTests(mode as Mode).then(
       code => { process.exitCode = code; },
-      () => {
+      error => {
         console.error("격리 SQL 테스트 실행에 실패했습니다. Docker와 테스트 환경을 확인해 주세요.");
+        const diagnostic = error as { name?: unknown; code?: unknown; number?: unknown };
+        // Driver messages/SQL may contain credentials. Print only bounded error identifiers.
+        if (typeof diagnostic.code === "string" && /^[A-Z_]{1,40}$/.test(diagnostic.code)) console.error("CODE", diagnostic.code);
+        if (typeof diagnostic.number === "number") console.error("NUMBER", diagnostic.number);
         process.exitCode = 1;
       },
     );

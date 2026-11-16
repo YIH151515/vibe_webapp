@@ -1,7 +1,7 @@
 # Plan: 자유 게시판 Azure 공개 운영
 
 - Date: 2026-11-13
-- Status: in_progress
+- Status: completed
 - Decisions: [확정 결정](../decisions/2026-11-13-free-board-azure.md)
 
 ## Goal
@@ -11,7 +11,7 @@
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
 | P01 | completed | SQL 전환·공개 운영 보안·관리자 | [P01](../phases/2026-11-13-free-board-azure/P01-cloud-app/phase.md) |
-| P02 | in_progress | Linux 패키지·CI·Azure 구축·첫 공개 | [P02](../phases/2026-11-13-free-board-azure/P02-azure-delivery/phase.md) |
+| P02 | completed | Linux 패키지·CI·Azure 구축·첫 공개 | [P02](../phases/2026-11-13-free-board-azure/P02-azure-delivery/phase.md) |
 
 ## Roadmap
 | 순서 | Task | 결과 |
@@ -27,7 +27,7 @@
 - 앱 경로 board, mssql12.7.14(Tedious), @types/mssql12.3.0. SQLite 이중 구현은 제거하고 파일은 보관한다.
 - DB: dbo.schema_migrations, posts(version1)→rate_buckets(version2)→admin_sessions(version3). additive migration을 명시 CLI로만 실행한다. import/build/runtime에서 자동 DDL하지 않는다.
 - 전역 지연 연결 pool 하나, 모든 저장 서비스 Promise. 로컬은 실제 운영 DB를 변경한다.
-- 테스트: @testcontainers/mssqlserver12.2.1 + SQL Server2022 Developer. 매 실행 일회용 컨테이너·자격증명·테스트 DB. 현재 Docker CLI는 있으나 Linux 엔진은 꺼져 있다.
+- 테스트: @testcontainers/mssqlserver12.2.1 + SQL Server2022 Developer. 매 실행 일회용 컨테이너·자격증명·테스트 DB. Linux 엔진 기동 및 테스트 소유 컨테이너 정리를 확인했다. NODE_ENV=test로 운영 .env.local을 제외한다.
 - Origin은 APP_ORIGIN으로 검증한다. HTTPS 프록시 헤더를 무조건 신뢰하지 않는다.
 - IP는 직접 App Service 프런트엔드가 덮어쓰는 client-ip를 배포 검증 후 사용한다. local 모드는 LOCAL_CLIENT_IP로 설정한 공개 IP를 사용하고 헤더를 무시한다. IP 원문 대신 HMAC 식별자를 DB에 저장한다.
 - 제한: 작성5/10분, 글 비밀번호 실패10/10분, 관리자 실패5/15분. SQL 고정 윈도우+진행 중 예약으로 동시 요청과 재시작에서도 유지한다.
@@ -45,6 +45,15 @@
 - current는 completed, phase는6/6, 운영·백업·비밀번호 교체·비용 안내가 실제 상태와 일치.
 
 ## Execution Boundaries
+
+## Completion Evidence
+- 2026-11-16 전체6/6 완료. 마지막 Task 완료 commit2c5b2ac.
+- 공개 URL https://app-vibe-board-prod-7b1417.azurewebsites.net / 실제 배포57fda56f9e28dbc33971323dd804b2268cee5a55.
+- Actions https://github.com/YIH151515/vibe_webapp/actions/runs/43777945761 verify/deploy success.
+- 전체43개 테스트와 Linux artifact 검증, 공개 CRUD·관리자·프록시 IP/HMAC·429·실제 재시작·PC/모바일 화면 검증 통과. 소유 QA 글 전부 정리.
+- OIDC는 실제 immutable owner/repository ID를 포함하는 main 한정 subject로 검증했다. 운영 기록과 비밀 보관/비밀번호 확인/백업/비용/롤백 안내: board/docs/azure-runbook.md.
+
+## Execution Boundaries (historical)
 계획 단계는 .memory 파일만 작성한다. Azure 로그인·리소스 생성·원격 연결·push·배포는 실행 단계 Task다. 실행 시 SKU·구독 권한·원격 상태를 다시 확인한다. 부족한 로그인/권한/필수 정보만 요청한다. 기존 미커밋 next-env.d.ts를 보존한다.
 
 ## Adjacent Findings

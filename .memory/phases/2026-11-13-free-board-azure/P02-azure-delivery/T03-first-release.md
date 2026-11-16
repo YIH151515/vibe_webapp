@@ -119,7 +119,7 @@ Task: T03-first-release
 - [x] 공개 URL https://app-vibe-board-prod-7b1417.azurewebsites.net 에서 verify-live.ps1 성공: health/version·root/CSS·CRUD/Origin/date·admin/cookie/consent·Chromium1280/390·restart/persistent-SQL/session·proxy-IP/HMAC/shared-window/429·logout/replay거부.
 - [x] 소유 QA 글 전부 정리, 전체 글0개/진행 예약0 확인. 작성 제한은 조작하지 않았고 만료2026-11-16 09:17:36 KST(초기Retry-After589초) 기록. 비밀번호와 쿠키는 stdin/프로세스 메모리만 사용.
 - [x] Docker에는 기존 사용자 pad 컨테이너만 남고 사용자3000 서버/next-env.d.ts 기존 변경은 보존했다. 운영 App Service Running/health200 유지. 백업7일·Local, 비용·비밀교체·firewall·rollback 절차를 실제 운영 기록에 포함했다.
-- commit: pending
+- commit: 2c5b2ac
 
 ## Next Task
 없음. 실제 배포 검증과 QA 정리 후 전체 completed로 기록한다.

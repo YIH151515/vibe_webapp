@@ -44,8 +44,6 @@
 - main push 검사 후 OIDC 배포 workflow 성공, URL/commit/run 기록.
 - current는 completed, phase는6/6, 운영·백업·비밀번호 교체·비용 안내가 실제 상태와 일치.
 
-## Execution Boundaries
-
 ## Completion Evidence
 - 2026-11-16 전체6/6 완료. 마지막 Task 완료 commit2c5b2ac.
 - 공개 URL https://app-vibe-board-prod-7b1417.azurewebsites.net / 실제 배포57fda56f9e28dbc33971323dd804b2268cee5a55.

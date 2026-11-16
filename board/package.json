@@ -24,7 +24,8 @@
     "verify:sql-access": "tsx scripts/verify-sql-access.ts",
     "verify:live": "tsx scripts/verify-live.ts",
     "media:cleanup": "tsx scripts/media-cleanup.ts",
-    "verify:image-access": "tsx scripts/verify-image-access.ts"
+    "verify:image-access": "tsx scripts/verify-image-access.ts",
+    "verify:live-media": "tsx scripts/verify-live-media.ts"
   },
   "dependencies": {
     "@azure/identity": "4.14.1",

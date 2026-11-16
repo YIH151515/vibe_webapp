@@ -79,4 +79,12 @@ DB PITR이 필요하면 uploads/자동 cleanup을 멈추고 별도 DB로 복원�
 - 기능 비활성 설정 후 기존 공개 health가 status=ok/version=57fda56f9e28dbc33971323dd804b2268cee5a55로 복구됨을 확인했다.
 - 익명 HEAD의 응답은 API 버전에 따라 다르다. 버전 없는 요청은409였고, 검증기는2023-11-03을 명시해401/403/404 차단을 확인한다. 이는 [Microsoft의 익명 요청 응답 설명](https://learn.microsoft.com/en-us/azure/storage/blobs/anonymous-read-access-prevent#responses-to-anonymous-requests)에 따른다. 권한 있는 컨테이너 속성 조회의 private 확인도 함께 수행한다.
 - 로컬 개발도 운영 SQL과 같은 Blob 계정을 공유한다. 로컬 기본 flag0을 유지하며 자동 테스트는 항상 전용 SQL/Azurite fixture를 사용한다.
-- 호환 baseline은 source commit을 고정한 뒤 Linux에서 다시 생성·검증하여 SHA를 추가한다.
+- 전환 전 복구 baseline: source `6d7b5d9238db9cb2d7977db93ab9f4709aea9528`, SHA256 `2dd907e71cbf2f24bb959c4d185f208b731f91d4ea36b37910309f9b0ea96c4a`. Linux 패키지 검증 후 `.deploy/compat-schema4/board.zip`과 manifest를 보관했고 실제 해시를 대조했다. 정상 main Actions 아티팩트로 최종 baseline을 교체한다.
+
+## 이미지 릴리스 검증
+
+`./scripts/verify-live-media.ps1 -Commit <실제 배포 SHA> -Disabled`로 schema4 flag0 일반 글 호환과 rich/session/upload 차단을 검사한 뒤, `./scripts/set-image-settings.ps1 -Mode Enabled`로 두 flag를 활성화한다. 이후 `./scripts/verify-live-media.ps1 -Commit <실제 배포 SHA>`를 실행한다. 관리자 비밀번호는 DPAPI에서 복호화해 stdin으로만 전달한다.
+
+검증은 임의 UUID 접두어의 글 최대2개와 세션 최대4개, 파일 예약 최대5개만 사용한다(flag0 검증 글1개는 별도). Chromium 파일 선택·서식·1280/390px·검색·수정·이미지 소유권·초안 비공개·Origin·형식/크기·실제 App Service 재시작·관리자 삭제/로그아웃을 검사한다. 자동 테스트는 격리 SQL/Azurite에서 같은 도구를 먼저 실행한다. 운영 브라우저 trace와 요청 본문/자격증명은 기록하지 않는다.
+
+정리는 메모리에 있는 본인 세션 토큰의 해시로 SQL asset 소유권을 확인한 UUID만 worker에 전달한다. 응답 유실 시에도 본인 UUID 접두어와 작성자 비밀번호를 확인해 글을 삭제한다. 다른 운영 글·이미지·제한 카운터는 변경하지 않는다. 삭제된 파일은 공개 경로에서 즉시404이며 Azure의 실제 deleted marker와7일 용량 보류를 확인한다. 파일 예약이 변환 전에 실패한 경우 파일 없이 즉시 환급될 수 있다. 검증은 제한 윈도우를 소비하므로429는 Retry-After의 자연 만료를 기다리고 카운터를 초기화하지 않는다.

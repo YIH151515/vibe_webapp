@@ -69,7 +69,7 @@ export function PostEditor({ mode, initial }: { mode: "create" | "edit"; initial
             image.uploadedSessionToken = token;
           }
         }
-        input = { ...values, document: serializeForSave(draft.current), ...(session.current ? { uploadSessionToken: session.current.token } : {}) };
+        input = { title: values.title, nickname: values.nickname, password: values.password, document: serializeForSave(draft.current), ...(session.current ? { uploadSessionToken: session.current.token } : {}) };
       }
       setProgress("이야기를 저장하고 있습니다…");
       const post = initial ? await updatePost(initial.id, input, controller.current.signal) : await createPost(input, controller.current.signal);

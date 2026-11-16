@@ -11,6 +11,22 @@ async function fields(page: Page, title: string) {
 }
 const selectedFile = async () => ({ name: "local-only.png", mimeType: "image/png", buffer: await png() });
 
+test("large existing rich document saves without duplicating its plain projection", async ({ page, request }) => {
+  const document = { version: 1, type: "doc", content: [{ type: "paragraph", content: Array.from({ length: 300 }, (_, index) => ({ type: "text", text: "가".repeat(30), ...(index % 2 ? {} : { marks: [{ type: "bold" }] }) })) }] };
+  const created = await request.post("/api/posts", { headers: { Origin: origin }, data: { title: "긴 문서", nickname: "검증작성자", password, document } });
+  expect(created.status()).toBe(201); const post = await created.json();
+  try {
+    await page.goto(`/posts/${post.id}/edit`); await fields(page, "긴 문서 제목 변경");
+    const saved = page.waitForRequest(req => req.method() === "PATCH" && req.url().endsWith(`/api/posts/${post.id}`));
+    await page.getByRole("button", { name: "수정 저장", exact: true }).click();
+    const payload = (await saved).postDataJSON(); expect(payload).not.toHaveProperty("content");
+    expect(Buffer.byteLength(JSON.stringify(payload))).toBeLessThan(65536);
+    await expect(page).toHaveURL(new RegExp(`/posts/${post.id}$`));
+    const current = await (await request.get(`/api/posts/${post.id}`)).json();
+    expect(current.content).toBe(post.content); expect(current.createdAt).toBe(post.createdAt);
+  } finally { await request.delete(`/api/posts/${post.id}`, { headers: { Origin: origin }, data: { password } }); }
+});
+
 for (const width of [1280, 390]) test(`rich images survive save/reload/edit and detach at ${width}px`, async ({ page, request }) => {
   test.setTimeout(90000); await page.setViewportSize({ width, height: 844 });
   const title = `에디터 ${randomUUID()}`; let uploads = 0;

@@ -79,8 +79,11 @@ test("multipart accepts exactly one file, counts body bytes and rejects extras/t
   const big = new FormData(); big.set("file", new Blob([Buffer.alloc(5242881)], { type: "image/png" }));
   await assert.rejects(readImageFile(request(big), () => {}), status(413));
   await assert.rejects(readImageFile(new Request("http://localhost", { method: "POST", body: "x" }), () => {}), status(415));
+  // Model an incoming wire body, not Undici's still-running FormData encoder.
+  // Early header rejection may cancel the stream before that encoder finishes.
+  const encoded = request(form), wire = new Uint8Array(await encoded.arrayBuffer());
   for (const length of ["invalid", "9007199254740992", "5308417"]) {
-    const req = request(form); req.headers.set("content-length", length);
+    const req = new Request("http://localhost", { method: "POST", headers: { "content-type": encoded.headers.get("content-type")!, "content-length": length }, body: wire });
     await assert.rejects(readImageFile(req, () => {}), status(length === "5308417" ? 413 : 400));
   }
 });

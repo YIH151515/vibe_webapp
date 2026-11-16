@@ -139,3 +139,6 @@ Task: T03-live-release
 - 릴리스 준비: rich payload에서 중복 평문 content를 제외하고9,000자/교차서식 문서 수정 회귀를 추가했다. JSON64KiB 한도는 유지한다.
 - verify-live-media 도구와 DPAPI→stdin wrapper를 구현했다. 격리 smoke에서 실제 Chromium과 SQL/Azurite로 own QA·수정·관리자·정리를 검증했다.
 - 전체93개(서비스54/API18/E2E21), typecheck/lint/workflow 검사 통과. 운영 SQL 전환/Actions/실제 Blob 검증은 아직 완료 전이며 이 준비 커밋으로 완료를 주장하지 않는다.
+- 운영 SQL4 migration2회와 제한 앱 권한 검증 완료(2026-11-16T07:40:58Z). 기존 글0개를 실제 조회했으며 초기화를 하지 않았다.
+- 첫 Actions43825539447은 서비스 테스트의 Node FormData 조기 취소 뒤 unhandled rejection으로 실패했다. SQL을 되돌리지 않고6d7b5d9 호환 ZIP/flags0로 즉시 복구했으며 health·일반 글 작성/조회/정리·rich/session/upload503을 실제 검증했다. 공개 QA 잔여0.
+- 헤더만으로 거부하는 테스트 입력을 미리 직렬화한 multipart wire bytes로 교체했다. 실 요청의 bounded read/cancel 구현은 유지한다. 별도 Linux Node24.22.3에서 미디어 테스트20회 반복 통과. 최종 Actions 성공/활성화 전까지 완료로 표시하지 않는다.

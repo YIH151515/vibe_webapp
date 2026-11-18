@@ -4,7 +4,7 @@ import sql from "mssql";
 import { readAuthConfig, type EntraConfig } from "../src/lib/server/auth-config";
 import { beginLogin, finishLogin, safeReturnTo } from "../src/lib/server/auth-flow";
 import { BoardError } from "../src/lib/server/errors";
-import { sqlFixture } from "./helpers/sql-fixture";
+import { emptySqlFixture as sqlFixture } from "./helpers/sql-fixture";
 import nextConfig from "../next.config";
 const config = () => readAuthConfig() as EntraConfig;
 const error = (status: number) => (value: unknown) => value instanceof BoardError && value.status === status;

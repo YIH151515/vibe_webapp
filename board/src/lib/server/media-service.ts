@@ -5,9 +5,12 @@ import { BoardError } from "./errors";
 import { MAX_IMAGE_BYTES, mediaDeadline, mediaUnavailable } from "./media-limits";
 import { UUID, conflict, mediaTransaction, queueDeletion, safeBytes } from "./media-transactions";
 import { finishMediaRequest, reserveMediaRequest } from "./media-rate-limit";
-import { bearer, readUploadSession, requireEditor } from "./upload-sessions";
+import { bearer, readUploadSession, requireEditor, requireSessionOwner } from "./upload-sessions";
 import { readImageFile } from "./multipart";
 import { normalizeImage } from "./image-processing";
+
+import { assertSessionInTransaction, requireActivePrincipal } from "./auth-session";
+import { getAccountKey, type Principal } from "./auth-principal";
 
 export type ImageAssetDto = { id: string; url: string; width: number; height: number; bytes: number; inputBytes: number; mimeType: "image/webp" };
 function dto(row: { id: string; width: number; height: number; stored_bytes: number; input_bytes: number }): ImageAssetDto {
@@ -15,18 +18,21 @@ function dto(row: { id: string; width: number; height: number; stored_bytes: num
   return { id, url: `/api/images/${id}`, width: row.width, height: row.height, bytes: row.stored_bytes, inputBytes: row.input_bytes, mimeType: "image/webp" };
 }
 export function createMediaService(pool: ConnectionPool, store: BlobStore) {
-  async function performUpload(request: Request, clientKey: string, deadline: ReturnType<typeof mediaDeadline>): Promise<{ status: 200 | 201; asset: ImageAssetDto }> {
-    requireEditor();
+  async function performUpload(request: Request, principal: Principal, deadline: ReturnType<typeof mediaDeadline>): Promise<{ status: 200 | 201; asset: ImageAssetDto }> {
+    await requireActivePrincipal(pool, principal); requireEditor();
+    const clientKey = getAccountKey(principal);
     const key = request.headers.get("idempotency-key") ?? "";
     if (!UUID.test(key)) throw new BoardError("VALIDATION_ERROR", 400, "올바른 업로드 요청 번호가 필요합니다.");
     const reservation = await reserveMediaRequest(pool, "file", clientKey);
     let received = 0, ownId: string | undefined;
     try {
-      const session = await readUploadSession(pool, bearer(request), clientKey);
+      const session = await readUploadSession(pool, bearer(request), principal);
       const pending = await mediaTransaction(pool, async tx => {
+        await assertSessionInTransaction(tx, principal);
         const current = (await new sql.Request(tx).input("id", sql.UniqueIdentifier, session.id)
           .query("SELECT * FROM dbo.upload_sessions WITH(UPDLOCK,HOLDLOCK) WHERE id=@id AND state='active' AND expires_at>SYSUTCDATETIME()")).recordset[0];
         if (!current) throw conflict();
+        requireSessionOwner(current, principal);
         const existing = (await new sql.Request(tx).input("sid", sql.UniqueIdentifier, session.id).input("key", sql.UniqueIdentifier, key)
           .query("SELECT * FROM dbo.image_assets WITH(UPDLOCK,HOLDLOCK) WHERE session_id=@sid AND idempotency_key=@key")).recordset[0];
         if (existing) { if (existing.state !== "ready") throw conflict(); return existing; }
@@ -49,7 +55,7 @@ export function createMediaService(pool: ConnectionPool, store: BlobStore) {
       if (!ownId) {
         if (pending.input_sha256 !== sha) throw conflict();
         // A cancellation/detach racing the body read must not resurrect a ready DTO.
-        const current = await readUploadSession(pool, bearer(request), clientKey);
+        const current = await readUploadSession(pool, bearer(request), principal);
         const ready = (await pool.request().input("id", sql.UniqueIdentifier, pending.id).input("sid", sql.UniqueIdentifier, current.id)
           .query("SELECT * FROM dbo.image_assets WHERE id=@id AND session_id=@sid AND state='ready'")).recordset[0];
         if (!ready) throw conflict();
@@ -58,10 +64,12 @@ export function createMediaService(pool: ConnectionPool, store: BlobStore) {
       const image = await normalizeImage(input, deadline.signal);
       const blobName = "images/" + ownId.replaceAll("-", "") + ".webp";
       await mediaTransaction(pool, async tx => {
+        await assertSessionInTransaction(tx, principal);
         if (deadline.signal.aborted) throw mediaUnavailable();
         const current = (await new sql.Request(tx).input("sid", sql.UniqueIdentifier, session.id)
           .query("SELECT * FROM dbo.upload_sessions WITH(UPDLOCK,HOLDLOCK) WHERE id=@sid AND state='active' AND expires_at>SYSUTCDATETIME()")).recordset[0];
         if (!current) throw conflict();
+        requireSessionOwner(current, principal);
         if (safeBytes(current.input_bytes) + input.bytes.length > 20971520) throw conflict("이미지 원본 합계는 20MiB 이하로 줄여 주세요.");
         const updated = await new sql.Request(tx).input("id", sql.UniqueIdentifier, ownId).input("sid", sql.UniqueIdentifier, session.id)
           .input("bytes", sql.Int, input.bytes.length).input("sha", sql.Char(64), sha).query(`
@@ -73,10 +81,12 @@ export function createMediaService(pool: ConnectionPool, store: BlobStore) {
       }, deadline.signal);
       await store.put(blobName, image.bytes, deadline.signal);
       const asset = await mediaTransaction(pool, async tx => {
+        await assertSessionInTransaction(tx, principal);
         if (deadline.signal.aborted) throw mediaUnavailable();
         const current = (await new sql.Request(tx).input("sid", sql.UniqueIdentifier, session.id)
-          .query("SELECT id FROM dbo.upload_sessions WITH(UPDLOCK,HOLDLOCK) WHERE id=@sid AND state='active' AND expires_at>SYSUTCDATETIME()")).recordset[0];
+          .query("SELECT * FROM dbo.upload_sessions WITH(UPDLOCK,HOLDLOCK) WHERE id=@sid AND state='active' AND expires_at>SYSUTCDATETIME()")).recordset[0];
         if (!current) throw conflict();
+        requireSessionOwner(current, principal);
         const result = await new sql.Request(tx).input("id", sql.UniqueIdentifier, ownId).input("bytes", sql.Int, image.bytes.length)
           .input("width", sql.Int, image.width).input("height", sql.Int, image.height).query(`
             UPDATE dbo.image_assets SET state='ready',stored_bytes=@bytes,width=@width,height=@height,charge_bytes=@bytes
@@ -109,13 +119,13 @@ export function createMediaService(pool: ConnectionPool, store: BlobStore) {
       await finishMediaRequest(pool, reservation, received);
     }
   }
-  return { async uploadImage(request: Request, clientKey: string): Promise<{ status: 200 | 201; asset: ImageAssetDto }> {
+  return { async uploadImage(request: Request, principal: Principal): Promise<{ status: 200 | 201; asset: ImageAssetDto }> {
     const deadline = mediaDeadline(request.signal);
     let abort: (() => void) | undefined;
     // SQL/remote I/O can complete after an HTTP disconnect. The caller still gets
     // a bounded response, while the observed work retains its durable reservation
     // and compensates safely; it cannot finalize a ready asset after this signal.
-    const work = performUpload(request, clientKey, deadline).finally(() => deadline.dispose());
+    const work = performUpload(request, principal, deadline).finally(() => deadline.dispose());
     try {
       return await Promise.race([work, new Promise<never>((_, reject) => {
         abort = () => reject(mediaUnavailable());

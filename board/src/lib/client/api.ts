@@ -62,6 +62,6 @@ export function updatePost(id: number, input: PostInput, signal?: AbortSignal): 
   return request(`/api/posts/${id}`, { ...json("PATCH", input), signal });
 }
 
-export function deletePost(id: number, password: string): Promise<void> {
-  return request(`/api/posts/${id}`, json("DELETE", { password }));
+export function deletePost(id: number): Promise<void> {
+  return request(`/api/posts/${id}`, json("DELETE", { confirm: true }));
 }

@@ -76,16 +76,30 @@ export async function readAppSession(pool: ConnectionPool, cookieValue: string |
   });
 }
 
-/** Caller must already hold the capacity lock (mediaTransaction), before upload/post/asset locks. */
-export async function assertSessionInTransaction(tx: sql.Transaction, value: Principal, requireAdmin = false): Promise<void> {
+export async function requireActivePrincipal(pool: ConnectionPool, value: Principal): Promise<void> {
   await guarded(async () => {
-    const row = (await identityScope(new sql.Request(tx), value, currentConfig()).query<{ is_admin: boolean }>(`
-      SELECT is_admin FROM dbo.auth_sessions WITH(UPDLOCK,HOLDLOCK)
+    const row = (await identityScope(pool.request(), value, currentConfig()).query<SessionRow>(`
+      SELECT id_hash,tenant_id,object_id,display_name,is_admin,expires_at FROM dbo.auth_sessions
       WHERE id_hash=@hash AND tenant_id=@tenant AND object_id=@object
         AND app_origin COLLATE Latin1_General_100_BIN2=@origin AND client_id=@client
         AND revoked_at IS NULL AND expires_at>SYSUTCDATETIME()
     `)).recordset[0];
     if (!row) throw unauthorized();
+    Object.assign(value, principal(row));
+  });
+}
+
+/** Caller must already hold the capacity lock (mediaTransaction), before upload/post/asset locks. */
+export async function assertSessionInTransaction(tx: sql.Transaction, value: Principal, requireAdmin = false): Promise<void> {
+  await guarded(async () => {
+    const row = (await identityScope(new sql.Request(tx), value, currentConfig()).query<SessionRow>(`
+      SELECT id_hash,tenant_id,object_id,display_name,is_admin,expires_at FROM dbo.auth_sessions WITH(UPDLOCK,HOLDLOCK)
+      WHERE id_hash=@hash AND tenant_id=@tenant AND object_id=@object
+        AND app_origin COLLATE Latin1_General_100_BIN2=@origin AND client_id=@client
+        AND revoked_at IS NULL AND expires_at>SYSUTCDATETIME()
+    `)).recordset[0];
+    if (!row) throw unauthorized();
+    Object.assign(value, principal(row));
     if (requireAdmin && !row.is_admin) throw forbidden();
   });
 }

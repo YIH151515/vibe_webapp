@@ -5,7 +5,7 @@ import { beginLogin, finishLogin } from "../src/lib/server/auth-flow";
 import { getOidcClient } from "../src/lib/server/oidc-client";
 import { BoardError } from "../src/lib/server/errors";
 import { startFakeOidcIssuer } from "./helpers/fake-oidc-issuer";
-import { sqlFixture } from "./helpers/sql-fixture";
+import { emptySqlFixture as sqlFixture } from "./helpers/sql-fixture";
 const error = (status: number) => (value: unknown) => value instanceof BoardError && value.status === status;
 
 test("JWT signature, audience, issuer, expiry, nonce and Member claims fail closed", async () => {

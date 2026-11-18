@@ -5,8 +5,6 @@ export type PostInput = {
   content?: string;
   document?: RichDocument | null;
   uploadSessionToken?: string;
-  nickname: string;
-  password: string;
 };
 
 export type PostSummary = {
@@ -14,6 +12,8 @@ export type PostSummary = {
   title: string;
   nickname: string;
   createdAt: string;
+  canEdit: boolean;
+  canDelete: boolean;
 };
 
 export type Post = PostSummary & {

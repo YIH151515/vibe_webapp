@@ -2,10 +2,10 @@ import {test,expect} from "./helpers/client-fixture";
 import {seedPosts} from "./helpers/sql-fixture";
 import {closeDatabase} from "../src/lib/server/database";
 test.afterAll(()=>closeDatabase());
-for(const width of [1280,390])test("admin moderation "+width,async({page})=>{
+for(const width of [1280,390])test("admin moderation "+width,async({page, principal})=>{
  await page.setViewportSize({width,height:844});
  const title="관리자 화면 "+width+" "+Date.now();
- await seedPosts([{title,content:"본문",nickname:"작성자",password:"author-password"}]);
+ await seedPosts([{title,content:"본문"}], principal);
  await page.goto("/admin");
  await page.getByLabel("관리자 비밀번호").fill("admin-test-password");
  await page.getByRole("button",{name:"로그인",exact:true}).click();

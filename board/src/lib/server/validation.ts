@@ -53,12 +53,13 @@ export function parsePasswordInput(value: unknown): { password: string } {
 }
 
 export type NormalizedPostInput = {
-  title: string; content: string; nickname: string; password: string;
+  title: string; content: string;
   contentFormat: "plain" | "rich_v1"; document: RichDocument | null; uploadSessionToken?: string;
 };
 
 export function parsePostInput(value: unknown): NormalizedPostInput {
   const input = objectInput(value);
+  if (Object.keys(input).some(key => !["title", "content", "document", "uploadSessionToken"].includes(key))) invalid({ form: "허용되지 않은 입력 항목입니다." });
   let content: string, document: RichDocument | null = null;
   if (input.document !== undefined && input.document !== null) {
     try {
@@ -77,8 +78,6 @@ export function parsePostInput(value: unknown): NormalizedPostInput {
   return {
     title: text(input.title, "title", "제목", 1, 100),
     content, contentFormat: document ? "rich_v1" : "plain", document,
-    nickname: text(input.nickname, "nickname", "닉네임", 2, 20),
-    password: parsePasswordInput(input).password,
     ...(input.uploadSessionToken !== undefined ? { uploadSessionToken: input.uploadSessionToken as string } : {}),
   };
 }

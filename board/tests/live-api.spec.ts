@@ -1,19 +1,9 @@
-import { createHmac } from "node:crypto";
-import { test, expect, newClientIp } from "./helpers/client-fixture";
-import { openDatabase, readSqlConfig } from "../src/lib/server/database";
-import { normalizeClientIp } from "../src/lib/server/request-context";
-import { verifyLive } from "../scripts/verify-live";
-
-test("deployment verifier completes owned QA flow on an isolated SQL database", async () => {
-  test.setTimeout(120000);
-  const ip = newClientIp(), pool = await openDatabase(readSqlConfig(process.env));
-  try {
-    const result = await verifyLive({ url: "http://127.0.0.1:3100", expectedCommit: process.env.APP_VERSION ?? "local", allowQaWrites: true }, {
-      pool, password: "admin-test-password", headers: { "client-ip": ip }, restart: async () => {},
-      clientKey: createHmac("sha256", Buffer.from(process.env.RATE_LIMIT_KEY_SECRET!, "hex")).update(normalizeClientIp(ip)).digest("hex"),
-    });
-    expect(result.qaPostIds).toEqual([]);
-    expect(result.retryAfterSeconds).toBeGreaterThan(0);
-    expect(result.checks).toContain("logout/replay-denied");
-  } finally { await pool.close(); }
+import { test, expect } from "./helpers/client-fixture";
+import { getDatabase } from "../src/lib/server/database";
+import { createBlobStore } from "../src/lib/server/blob-store";
+import { verifyAuthenticatedApi } from "./helpers/authenticated-live-check";
+test("live-api authenticated QA preserves media lifecycle and logout denial", async ({request,playwright,principal,baseURL})=>{
+ test.setTimeout(180000);const anonymous=await playwright.request.newContext({baseURL,storageState:{cookies:[],origins:[]}});
+ try{const result=await verifyAuthenticatedApi({pool:await getDatabase(),store:createBlobStore(process.env),request,anonymous,principal});
+ expect(result.checks).toContain("logout/replay-denied");expect(result.checks).toContain("cleanup/retention-accounting");}finally{await anonymous.dispose();}
 });

@@ -1,12 +1,13 @@
-import sql, { type ConnectionPool } from "mssql";
-import { BoardError } from "./errors";
-import { verifyPassword } from "./password";
+import { forbidden, type Principal } from "./auth-principal";
 
-export async function authorizePostPassword(pool: ConnectionPool, id: number, password: string): Promise<string> {
-  const result = await pool.request().input("id", sql.BigInt, String(id))
-    .query<{ password_hash: string }>("SELECT password_hash FROM dbo.posts WHERE id=@id");
-  const row = result.recordset[0];
-  if (!row) throw new BoardError("NOT_FOUND", 404, "글을 찾을 수 없습니다.");
-  if (!await verifyPassword(password, row.password_hash)) throw new BoardError("INVALID_PASSWORD", 403, "비밀번호가 일치하지 않습니다.");
-  return row.password_hash;
+export type OwnedRow = { author_tenant_id: string | null; author_object_id: string | null };
+export function ownsPost(row: OwnedRow, principal: Principal): boolean {
+  return row.author_tenant_id?.toLowerCase() === principal.tenantId && row.author_object_id?.toLowerCase() === principal.objectId;
+}
+export function requirePostOwner(row: OwnedRow, principal: Principal): void {
+  if (!ownsPost(row, principal)) throw forbidden();
+}
+export function postPermissions(row: OwnedRow, principal: Principal) {
+  const canEdit = ownsPost(row, principal);
+  return { canEdit, canDelete: canEdit || principal.isAdmin };
 }

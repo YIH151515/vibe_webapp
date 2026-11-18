@@ -7,7 +7,7 @@ import { type VerifiedIdentity } from "../src/lib/server/auth-principal";
 import { assertSessionInTransaction, cleanupAuthState, createAppSession, readAppSession, revokeAppSession } from "../src/lib/server/auth-session";
 import { BoardError } from "../src/lib/server/errors";
 import { mediaTransaction } from "../src/lib/server/media-transactions";
-import { sqlFixture } from "./helpers/sql-fixture";
+import { emptySqlFixture as sqlFixture } from "./helpers/sql-fixture";
 
 const updates = { AUTH_MODE: "entra", ENTRA_TENANT_ID, AUTH_ENCRYPTION_KEY: randomBytes(32).toString("hex"),
   TEST_OIDC_ISSUER: "http://127.0.0.1:43123", TEST_OIDC_CLIENT_ID: randomUUID(), TEST_OIDC_CLIENT_SECRET: "synthetic-session-test-secret" };

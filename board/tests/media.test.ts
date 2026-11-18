@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { test } from "node:test";
 import sharp from "sharp";
 import sql from "mssql";
+import { createTestActor, createTestSession } from "./helpers/auth-fixture";
 import { mediaFixture } from "./helpers/media-fixture";
 import { FakeBlobStore } from "./helpers/fake-blob-store";
 import { createMediaService } from "../src/lib/server/media-service";
@@ -16,7 +17,7 @@ import type { RichDocument } from "../src/lib/posts/document";
 
 const key = () => randomBytes(32).toString("hex");
 const is = (status: number) => (error: unknown) => error instanceof BoardError && error.status === status;
-const postInput = { title: "이미지 검증", nickname: "작성자", password: "author-password", content: "기존 본문" };
+const postInput = { title: "이미지 검증", content: "기존 본문" };
 const document = (...ids: string[]): RichDocument => ({ version: 1, type: "doc", content: ids.map(assetId => ({ type: "image", attrs: { assetId, alt: "첨부" } })) });
 async function jpeg() { return sharp({ create: { width: 50, height: 25, channels: 3, background: "red" } }).jpeg().toBuffer(); }
 function upload(token: string, bytes: Buffer, id = randomUUID()) {
@@ -32,58 +33,58 @@ async function invariant(pool: sql.ConnectionPool) {
 }
 
 test("private upload, idempotency, atomic ownership, ETag, detach, author/admin outbox", async () => {
-  const f = await mediaFixture(); const client = key(); const service = createPostService(f.pool);
+  const f = await mediaFixture(); const service = createPostService(f.pool);
   try {
-    const session = await issueUploadSession(f.pool, client, {}), bytes = await jpeg(), idempotency = randomUUID();
+    const session = await issueUploadSession(f.pool, f.principal, {}), bytes = await jpeg(), idempotency = randomUUID();
     const media = createMediaService(f.pool, f.store);
-    const { asset } = await media.uploadImage(upload(session.token, bytes, idempotency), client);
+    const { asset } = await media.uploadImage(upload(session.token, bytes, idempotency), f.principal);
     assert.equal(asset.mimeType, "image/webp"); assert.equal(asset.width, 50);
-    await assert.rejects(getPublishedImage(f.pool, f.store, asset.id, request()), is(404));
-    assert.equal((await media.uploadImage(upload(session.token, bytes, idempotency), client)).status, 200);
-    await assert.rejects(media.uploadImage(upload(session.token, Buffer.concat([bytes, Buffer.from("different")]), idempotency), client), is(409));
-    await assert.rejects(media.uploadImage(upload(session.token, bytes), key()), is(401));
-    const post = await service.create({ ...postInput, document: document(asset.id), uploadSessionToken: session.token }, { clientKey: client });
+    await assert.rejects(getPublishedImage(f.pool, f.store, asset.id, request(), f.principal), is(404));
+    assert.equal((await media.uploadImage(upload(session.token, bytes, idempotency), f.principal)).status, 200);
+    await assert.rejects(media.uploadImage(upload(session.token, Buffer.concat([bytes, Buffer.from("different")]), idempotency), f.principal), is(409));
+    await assert.rejects(media.uploadImage(upload(session.token, bytes), (await createTestSession(f.pool, createTestActor())).principal), is(401));
+    const post = await service.create({ ...postInput, document: document(asset.id), uploadSessionToken: session.token }, f.context);
     assert.equal(post.content, ""); await invariant(f.pool);
-    await assert.rejects(readUploadSession(f.pool, session.token, client), is(409));
-    const response = await getPublishedImage(f.pool, f.store, asset.id, request());
+    await assert.rejects(readUploadSession(f.pool, session.token, f.principal), is(409));
+    const response = await getPublishedImage(f.pool, f.store, asset.id, request(), f.principal);
     assert.equal(response.status, 200); const etag = response.headers.get("etag")!;
     assert.equal((await sharp(Buffer.from(await response.arrayBuffer())).metadata()).format, "webp");
-    assert.equal((await getPublishedImage(f.pool, f.store, asset.id, request(), true)).body, null);
+    assert.equal((await getPublishedImage(f.pool, f.store, asset.id, request(), f.principal, true)).body, null);
     const conditional = new Request("http://localhost", { headers: { "If-None-Match": etag } });
-    assert.equal((await getPublishedImage(f.pool, f.store, asset.id, conditional)).status, 304);
-    const other = await service.create(postInput);
-    await assert.rejects(service.update(other.id, { ...postInput, document: document(asset.id) }, { clientKey: client }), is(409));
-    assert.equal((await service.get(other.id)).content, postInput.content);
-    await service.update(post.id, { ...postInput, document: document(asset.id) }, { clientKey: client });
-    await service.update(post.id, { ...postInput, document: { version: 1, type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "이미지 제거" }] }] } }, { clientKey: client });
-    await assert.rejects(getPublishedImage(f.pool, f.store, asset.id, conditional), is(404));
+    assert.equal((await getPublishedImage(f.pool, f.store, asset.id, conditional, f.principal)).status, 304);
+    const other = await service.create(postInput, f.context);
+    await assert.rejects(service.update(other.id, { ...postInput, document: document(asset.id) }, f.context), is(409));
+    assert.equal((await service.get(other.id, f.principal)).content, postInput.content);
+    await service.update(post.id, { ...postInput, document: document(asset.id) }, f.context);
+    await service.update(post.id, { ...postInput, document: { version: 1, type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "이미지 제거" }] }] } }, f.context);
+    await assert.rejects(getPublishedImage(f.pool, f.store, asset.id, conditional, f.principal), is(404));
     assert.equal((await f.pool.request().query("SELECT COUNT(*) n FROM dbo.image_delete_jobs")).recordset[0].n, 1);
-    const editing = await issueUploadSession(f.pool, client, { postId: other.id, password: postInput.password });
-    const editedAsset = (await media.uploadImage(upload(editing.token, bytes), client)).asset;
-    await service.update(other.id, { ...postInput, document: document(editedAsset.id), uploadSessionToken: editing.token }, { clientKey: client });
-    await deletePostAsAdmin(f.pool, other.id);
-    await assert.rejects(getPublishedImage(f.pool, f.store, editedAsset.id, request()), is(404));
-    await service.remove(post.id, { password: postInput.password }); await invariant(f.pool);
+    const editing = await issueUploadSession(f.pool, f.principal, { postId: other.id });
+    const editedAsset = (await media.uploadImage(upload(editing.token, bytes), f.principal)).asset;
+    await service.update(other.id, { ...postInput, document: document(editedAsset.id), uploadSessionToken: editing.token }, f.context);
+    await deletePostAsAdmin(f.pool, other.id, (await createTestSession(f.pool, createTestActor({ isAdmin: true }))).principal);
+    await assert.rejects(getPublishedImage(f.pool, f.store, editedAsset.id, request(), f.principal), is(404));
+    await service.remove(post.id, { confirm: true }, f.principal); await invariant(f.pool);
     assert.equal((await f.pool.request().query("SELECT COUNT(*) n FROM dbo.image_delete_jobs")).recordset[0].n, 2);
   } finally { await f.close(); }
 });
 
-test("session passwords, expiry, cancellation, consumed tokens and source binding", async () => {
-  const f = await mediaFixture(), client = key(); const posts = createPostService(f.pool);
+test("session ownership, expiry, cancellation, consumed tokens and source binding", async () => {
+  const f = await mediaFixture(); const posts = createPostService(f.pool);
   try {
-    const post = await posts.create(postInput);
-    await assert.rejects(issueUploadSession(f.pool, client, { postId: post.id, password: "wrong-password" }), is(403));
-    await assert.rejects(issueUploadSession(f.pool, client, { postId: 99999999, password: postInput.password }), is(404));
-    const session = await issueUploadSession(f.pool, client, { postId: post.id, password: postInput.password });
-    await assert.rejects(cancelUploadSession(f.pool, session.token, key()), is(401));
-    const read = await readUploadSession(f.pool, session.token, client);
-    await assert.rejects(readUploadSession(f.pool, session.token, client, new Date(read.expiresAt.getTime() + 1)), is(401));
-    await cancelUploadSession(f.pool, session.token, client); await cancelUploadSession(f.pool, session.token, client);
-    await assert.rejects(readUploadSession(f.pool, session.token, client), is(401));
-    await assert.rejects(readUploadSession(f.pool, "invalid", client), is(401));
-    const active = await issueUploadSession(f.pool, client, { postId: post.id, password: postInput.password });
-    await posts.remove(post.id, { password: postInput.password });
-    await assert.rejects(readUploadSession(f.pool, active.token, client), is(401));
+    const post = await posts.create(postInput, f.context);
+    await assert.rejects(issueUploadSession(f.pool, (await createTestSession(f.pool, createTestActor())).principal, { postId: post.id }), is(403));
+    await assert.rejects(issueUploadSession(f.pool, f.principal, { postId: 99999999 }), is(404));
+    const session = await issueUploadSession(f.pool, f.principal, { postId: post.id });
+    await assert.rejects(cancelUploadSession(f.pool, session.token, (await createTestSession(f.pool, createTestActor())).principal), is(401));
+    const read = await readUploadSession(f.pool, session.token, f.principal);
+    await assert.rejects(readUploadSession(f.pool, session.token, f.principal, new Date(read.expiresAt.getTime() + 1)), is(401));
+    await cancelUploadSession(f.pool, session.token, f.principal); await cancelUploadSession(f.pool, session.token, f.principal);
+    await assert.rejects(readUploadSession(f.pool, session.token, f.principal), is(401));
+    await assert.rejects(readUploadSession(f.pool, "invalid", f.principal), is(401));
+    const active = await issueUploadSession(f.pool, f.principal, { postId: post.id });
+    await posts.remove(post.id, { confirm: true }, f.principal);
+    await assert.rejects(readUploadSession(f.pool, active.token, f.principal), is(401));
   } finally { await f.close(); }
 });
 
@@ -113,19 +114,19 @@ test("durable session/file budgets, stale reservations, generation guard and ide
 });
 
 test("cancel racing Blob completion never revives an image; prewrite failures refund capacity", async () => {
-  const f = await mediaFixture(), client = key(), store = new FakeBlobStore();
+  const f = await mediaFixture(), store = new FakeBlobStore();
   try {
-    const session = await issueUploadSession(f.pool, client, {}), media = createMediaService(f.pool, store);
+    const session = await issueUploadSession(f.pool, f.principal, {}), media = createMediaService(f.pool, store);
     const invalid = upload(session.token, Buffer.from("not jpeg"));
-    await assert.rejects(media.uploadImage(invalid, client), is(415)); await invariant(f.pool);
+    await assert.rejects(media.uploadImage(invalid, f.principal), is(415)); await invariant(f.pool);
     assert.equal((await f.pool.request().query("SELECT occupied_bytes FROM dbo.media_capacity")).recordset[0].occupied_bytes, "0");
     let entered!: () => void, release!: () => void;
     const started = new Promise<void>(resolve => { entered = resolve; });
     const gate = new Promise<void>(resolve => { release = resolve; });
     store.beforeOperation = async operation => { if (operation === "put") { entered(); await gate; } };
-    const pending = media.uploadImage(upload(session.token, await jpeg()), client);
+    const pending = media.uploadImage(upload(session.token, await jpeg()), f.principal);
     const rejected = assert.rejects(pending, is(409));
-    await started; await cancelUploadSession(f.pool, session.token, client); release(); await rejected;
+    await started; await cancelUploadSession(f.pool, session.token, f.principal); release(); await rejected;
     assert.equal((await f.pool.request().query("SELECT COUNT(*) n FROM dbo.image_assets WHERE state='ready'")).recordset[0].n, 0);
     assert.equal((await f.pool.request().query("SELECT COUNT(*) n FROM dbo.image_delete_jobs")).recordset[0].n, 1);
     await invariant(f.pool);
@@ -133,14 +134,14 @@ test("cancel racing Blob completion never revives an image; prewrite failures re
 });
 
 test("five files, global capacity and Blob/SQL failure keep conservative accounting", async () => {
-  const f = await mediaFixture(), client = key(), store = new FakeBlobStore();
+  const f = await mediaFixture(), store = new FakeBlobStore();
   try {
-    const session = await issueUploadSession(f.pool, client, {}), media = createMediaService(f.pool, store), bytes = await jpeg();
-    for (let n = 0; n < 5; n++) await media.uploadImage(upload(session.token, bytes), client);
-    await assert.rejects(media.uploadImage(upload(session.token, bytes), client), is(409));
+    const session = await issueUploadSession(f.pool, f.principal, {}), media = createMediaService(f.pool, store), bytes = await jpeg();
+    for (let n = 0; n < 5; n++) await media.uploadImage(upload(session.token, bytes), f.principal);
+    await assert.rejects(media.uploadImage(upload(session.token, bytes), f.principal), is(409));
     await invariant(f.pool);
-    const second = await issueUploadSession(f.pool, client, {});
-    store.failOnce("put"); await assert.rejects(media.uploadImage(upload(second.token, bytes), client), is(503));
+    const second = await issueUploadSession(f.pool, f.principal, {});
+    store.failOnce("put"); await assert.rejects(media.uploadImage(upload(second.token, bytes), f.principal), is(503));
     await invariant(f.pool);
     const row = (await f.pool.request().query("SELECT TOP(1) id FROM dbo.image_assets ORDER BY id")).recordset[0];
     const occupied = Number((await f.pool.request().query("SELECT occupied_bytes FROM dbo.media_capacity")).recordset[0].occupied_bytes);
@@ -149,35 +150,35 @@ test("five files, global capacity and Blob/SQL failure keep conservative account
       UPDATE dbo.image_assets SET charge_bytes=charge_bytes+@extra WHERE id=@id;
       UPDATE dbo.media_capacity SET occupied_bytes=occupied_bytes+@extra WHERE id=1;
     `);
-    await assert.rejects(media.uploadImage(upload(second.token, bytes), client), (error: unknown) => error instanceof BoardError && error.code === "STORAGE_FULL");
+    await assert.rejects(media.uploadImage(upload(second.token, bytes), f.principal), (error: unknown) => error instanceof BoardError && error.code === "STORAGE_FULL");
     await invariant(f.pool);
   } finally { await f.close(); }
 });
 
 test("session and final post enforce the 20MiB input budget independently", async () => {
-  const f = await mediaFixture(), client = key(), media = createMediaService(f.pool, f.store), posts = createPostService(f.pool);
+  const f = await mediaFixture(), media = createMediaService(f.pool, f.store), posts = createPostService(f.pool);
   try {
     const original = await jpeg(), padded = Buffer.alloc(4 * 1024 * 1024 + 1); original.copy(padded);
-    const session = await issueUploadSession(f.pool, client, {}), ids: string[] = [];
-    for (let n = 0; n < 4; n++) ids.push((await media.uploadImage(upload(session.token, padded), client)).asset.id);
-    await assert.rejects(media.uploadImage(upload(session.token, padded), client), is(409));
-    const post = await posts.create({ ...postInput, document: document(...ids), uploadSessionToken: session.token }, { clientKey: client });
-    const edit = await issueUploadSession(f.pool, client, { postId: post.id, password: postInput.password });
-    const extra = (await media.uploadImage(upload(edit.token, padded), client)).asset;
-    await assert.rejects(posts.update(post.id, { ...postInput, document: document(...ids, extra.id), uploadSessionToken: edit.token }, { clientKey: client }), is(409));
-    assert.deepEqual((await posts.get(post.id)).document, document(...ids));
+    const session = await issueUploadSession(f.pool, f.principal, {}), ids: string[] = [];
+    for (let n = 0; n < 4; n++) ids.push((await media.uploadImage(upload(session.token, padded), f.principal)).asset.id);
+    await assert.rejects(media.uploadImage(upload(session.token, padded), f.principal), is(409));
+    const post = await posts.create({ ...postInput, document: document(...ids), uploadSessionToken: session.token }, f.context);
+    const edit = await issueUploadSession(f.pool, f.principal, { postId: post.id });
+    const extra = (await media.uploadImage(upload(edit.token, padded), f.principal)).asset;
+    await assert.rejects(posts.update(post.id, { ...postInput, document: document(...ids, extra.id), uploadSessionToken: edit.token }, f.context), is(409));
+    assert.deepEqual((await posts.get(post.id, f.principal)).document, document(...ids));
     await invariant(f.pool);
   } finally { await f.close(); }
 });
 
 test("Blob success followed by a lost finalize lease remains charged and queued", async () => {
-  const f = await mediaFixture(), client = key(), store = new FakeBlobStore();
+  const f = await mediaFixture(), store = new FakeBlobStore();
   try {
-    const session = await issueUploadSession(f.pool, client, {});
+    const session = await issueUploadSession(f.pool, f.principal, {});
     store.beforeOperation = async operation => {
       if (operation === "put") await f.pool.request().query("UPDATE dbo.image_assets SET lease_until=DATEADD(second,-1,SYSUTCDATETIME()) WHERE state='uploading'");
     };
-    await assert.rejects(createMediaService(f.pool, store).uploadImage(upload(session.token, await jpeg()), client), is(409));
+    await assert.rejects(createMediaService(f.pool, store).uploadImage(upload(session.token, await jpeg()), f.principal), is(409));
     const asset = (await f.pool.request().query("SELECT state,charge_bytes FROM dbo.image_assets")).recordset[0];
     assert.equal(asset.state, "deleting"); assert.equal(Number(asset.charge_bytes), 5242880); assert.equal(store.active.size, 1);
     await invariant(f.pool);
@@ -185,15 +186,15 @@ test("Blob success followed by a lost finalize lease remains charged and queued"
 });
 
 test("disconnect returns promptly while durable upload compensation finishes safely", async () => {
-  const f = await mediaFixture(), client = key(), store = new FakeBlobStore(), abort = new AbortController();
+  const f = await mediaFixture(), store = new FakeBlobStore(), abort = new AbortController();
   let release!: () => void;
   try {
-    const session = await issueUploadSession(f.pool, client, {});
+    const session = await issueUploadSession(f.pool, f.principal, {});
     let entered!: () => void;
     const started = new Promise<void>(resolve => { entered = resolve; });
     const gate = new Promise<void>(resolve => { release = resolve; });
     store.beforeOperation = async operation => { if (operation === "put") { entered(); await gate; } };
-    const pending = createMediaService(f.pool, store).uploadImage(new Request(upload(session.token, await jpeg()), { signal: abort.signal }), client);
+    const pending = createMediaService(f.pool, store).uploadImage(new Request(upload(session.token, await jpeg()), { signal: abort.signal }), f.principal);
     const rejected = assert.rejects(pending, is(503));
     await started; abort.abort(); await rejected; release();
     for (let n = 0; n < 100; n++) {

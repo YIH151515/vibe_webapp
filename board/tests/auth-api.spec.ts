@@ -1,4 +1,4 @@
-import { test, expect } from "./helpers/client-fixture";
+import { test, expect } from "./helpers/anonymous-fixture";
 
 const origin = "http://127.0.0.1:3100";
 test("auth routes establish a safe cookie session and revoke old cookies on sign-in/logout", async ({ request }) => {

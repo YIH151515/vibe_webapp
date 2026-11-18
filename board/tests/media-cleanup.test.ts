@@ -5,7 +5,7 @@ import sql, { type ConnectionPool } from "mssql";
 import { mediaFixture } from "./helpers/media-fixture";
 import { FakeBlobStore } from "./helpers/fake-blob-store";
 import { runMediaCleanup } from "../src/lib/server/media-cleanup";
-import { createPostService } from "../src/lib/server/posts";
+
 import { reserveMediaRequest } from "../src/lib/server/media-rate-limit";
 import { cleanupCli, parseCleanupArguments } from "../scripts/media-cleanup";
 import { register } from "../src/instrumentation";
@@ -14,7 +14,7 @@ const day = 86400000, base = new Date("2030-01-01T00:00:00.000Z");
 type Store = FakeBlobStore | Awaited<ReturnType<typeof mediaFixture>>["store"];
 async function seed(pool: ConnectionPool, store: Store, state: "ready" | "deleting" | "attached", write = true) {
   const id = randomUUID(), sid = randomUUID(), name = "images/" + id.replaceAll("-", "") + ".webp", bytes = Buffer.from("private-image");
-  const post = state === "attached" ? await createPostService(pool).create({ title: "보존할 글", nickname: "작성자", password: "author-password", content: "본문" }) : null;
+  const post = state === "attached" ? (await pool.request().query("INSERT dbo.posts(title,content,nickname,password_hash) OUTPUT inserted.id VALUES(N'보존할 글',N'본문',N'작성자','legacy-test-hash')")).recordset[0] : null;
   await pool.request().input("sid", sql.UniqueIdentifier, sid).input("token", sql.Char(64), randomBytes(32).toString("hex"))
     .input("key", sql.Char(64), randomBytes(32).toString("hex")).input("now", sql.DateTime2(3), base).query(`
       INSERT dbo.upload_sessions(id,token_hash,client_key,created_at,expires_at,file_count)

@@ -26,7 +26,7 @@ test("rich text API stores canonical content and refuses unsafe documents and le
   expect(updated.status()).toBe(200); expect((await updated.json() as Post).createdAt).toBe(post.createdAt);
   const images = { version: 1, type: "doc", content: [{ type: "image", attrs: { assetId: randomUUID(), alt: "첨부" } }] };
   await expectError(await request.post("/api/posts", { headers: { Origin: origin }, data: { ...data, document: images } }), 409, "MEDIA_CONFLICT");
-  expect((await request.delete(`/api/posts/${post.id}`, { data: { password: data.password } })).status()).toBe(204);
+  expect((await request.delete(`/api/posts/${post.id}`, { data: { confirm: true } })).status()).toBe(204);
 });
 
 test("health confirms current SQL schema without exposing configuration", async ({ request }) => {
@@ -39,7 +39,7 @@ test("health confirms current SQL schema without exposing configuration", async 
 function input(): PostInput {
   return {
     title: `글-${randomUUID()}`, content: "일반 텍스트 본문",
-    nickname: "작성자", password: "secret-password",
+
   };
 }
 
@@ -49,7 +49,7 @@ async function create(request: APIRequestContext, data: PostInput): Promise<Post
   expect(response.headers()["cache-control"]).toBe("no-store");
   const post = await response.json() as Post;
   expect(response.headers().location).toBe(`/posts/${post.id}`);
-  expect(Object.keys(post).sort()).toEqual(["content", "contentFormat", "createdAt", "document", "id", "nickname", "title"]);
+  expect(Object.keys(post).sort()).toEqual(["canDelete", "canEdit", "content", "contentFormat", "createdAt", "document", "id", "nickname", "title"]);
   return post;
 }
 
@@ -59,7 +59,7 @@ async function expectError(response: APIResponse, status: number, code: string):
   expect((await response.json()).error.code).toBe(code);
 }
 
-test("CRUD returns public DTOs and enforces passwords without modifying creation time", async ({ request }) => {
+test("CRUD returns public DTOs and preserves creation time", async ({ request }) => {
   const data = input();
   const post = await create(request, data);
   const path = `/api/posts/${post.id}`;
@@ -68,30 +68,24 @@ test("CRUD returns public DTOs and enforces passwords without modifying creation
   expect(detail.headers()["cache-control"]).toBe("no-store");
   expect(await detail.json()).toEqual(post);
 
-  await expectError(await request.patch(path, {
-    data: { ...data, title: "거부될 제목", password: "wrong-password" },
-  }), 403, "INVALID_PASSWORD");
-  await expectError(await request.delete(path, {
-    data: { password: "wrong-password" },
-  }), 403, "INVALID_PASSWORD");
-  expect(await (await request.get(path)).json()).toEqual(post);
+
 
   const updated = await request.patch(path, {
     headers: { Origin: origin },
-    data: { ...data, title: "수정한 글", content: "수정한 내용", nickname: "수정자" },
+    data: { ...data, title: "수정한 글", content: "수정한 내용" },
   });
   expect(updated.status()).toBe(200);
   expect(updated.headers()["cache-control"]).toBe("no-store");
   expect(await updated.json()).toEqual({
-    ...post, title: "수정한 글", content: "수정한 내용", nickname: "수정자",
+    ...post, title: "수정한 글", content: "수정한 내용",
   });
-  const deleted = await request.delete(path, { data: { password: data.password } });
+  const deleted = await request.delete(path, { data: { confirm: true } });
   expect(deleted.status()).toBe(204);
   expect(deleted.headers()["cache-control"]).toBe("no-store");
   expect(await deleted.text()).toBe("");
   await expectError(await request.get(path), 404, "NOT_FOUND");
   await expectError(await request.patch(path, { data }), 404, "NOT_FOUND");
-  await expectError(await request.delete(path, { data: { password: data.password } }), 404, "NOT_FOUND");
+  await expectError(await request.delete(path, { data: { confirm: true } }), 404, "NOT_FOUND");
 });
 
 test("write Origin checks run before content validation and block all mutations", async ({ request }) => {
@@ -101,10 +95,10 @@ test("write Origin checks run before content validation and block all mutations"
   for (const blocked of ["https://other.example", "http://localhost:3100", "http://127.0.0.1:3101", "null", origin + "/", "invalid-origin"]) {
     await expectError(await request.post("/api/posts", { headers: { Origin: blocked }, data }), 403, "FORBIDDEN");
     await expectError(await request.patch(path, { headers: { Origin: blocked }, data }), 403, "FORBIDDEN");
-    await expectError(await request.delete(path, { headers: { Origin: blocked }, data: { password: data.password } }), 403, "FORBIDDEN");
+    await expectError(await request.delete(path, { headers: { Origin: blocked }, data: { confirm: true } }), 403, "FORBIDDEN");
   }
   await expectError(await request.post("/api/posts", {
-    headers: { "Sec-Fetch-Site": "cross-site", "Content-Type": "text/plain" }, data: "not JSON",
+    headers: { Origin: "", "Sec-Fetch-Site": "cross-site", "Content-Type": "text/plain" }, data: "not JSON",
   }), 403, "FORBIDDEN");
   expect(await (await request.get(path)).json()).toEqual(post);
   const list = await (await request.get("/api/posts", { params: { q: data.title } })).json();
@@ -133,7 +127,7 @@ test("JSON and media type failures have consistent errors", async ({ request }) 
   expect(charset.status()).toBe(201);
 });
 
-test("server validates input bounds and preserves password whitespace", async ({ request }) => {
+test("server validates input bounds and rejects identity fields", async ({ request }) => {
   const data = input();
   for (const invalid of [
     null, [], {}, { ...data, title: " " }, { ...data, title: 1 },
@@ -150,20 +144,20 @@ test("server validates input bounds and preserves password whitespace", async ({
   }
   const upper = await create(request, {
     title: "가".repeat(100), content: "나".repeat(10000),
-    nickname: "다".repeat(20), password: "p".repeat(64),
+
   });
   expect(upper.content.length).toBe(10000);
   const spaced = await create(request, {
-    ...data, title: "  제목  ", content: "  첫줄\r\n둘째줄  ", nickname: "  별명  ", password: " 12345678 ",
+    ...data, title: "  제목  ", content: "  첫줄\r\n둘째줄  ",
   });
   expect(spaced.title).toBe("제목");
   expect(spaced.content).toBe("첫줄\n둘째줄");
-  expect(spaced.nickname).toBe("별명");
+
   await expectError(await request.delete(`/api/posts/${spaced.id}`, {
-    data: { password: "12345678" },
-  }), 403, "INVALID_PASSWORD");
+    data: { confirm: false },
+  }), 400, "VALIDATION_ERROR");
   expect((await request.delete(`/api/posts/${spaced.id}`, {
-    data: { password: " 12345678 " },
+    data: { confirm: true },
   })).status()).toBe(204);
 });
 
@@ -181,10 +175,10 @@ test("id and query validation rejects malformed and duplicated parameters", asyn
   expect((await request.put("/api/posts", { data: input() })).status()).toBe(405);
 });
 
-test("search pages preserve the query, match literal characters and expose only summaries", async ({ request }) => {
+test("search pages preserve the query, match literal characters and expose only summaries", async ({ request, principal }) => {
   const token = randomUUID();
   const data = input();
-  await seedPosts(Array.from({ length: 21 }, (_, i) => ({ ...data, title: `${token}-${i}` })));
+  await seedPosts(Array.from({ length: 21 }, (_, i) => ({ ...data, title: `${token}-${i}` })), principal);
   const firstResponse = await request.get("/api/posts", { params: { q: token, page: "1" } });
   expect(firstResponse.headers()["cache-control"]).toBe("no-store");
   const first = await firstResponse.json();
@@ -194,7 +188,7 @@ test("search pages preserve the query, match literal characters and expose only 
   expect(first.totalPages).toBe(2);
   expect(first.q).toBe(token);
   expect(first.items.length).toBe(20);
-  expect(Object.keys(first.items[0]).sort()).toEqual(["createdAt", "id", "nickname", "title"]);
+  expect(Object.keys(first.items[0]).sort()).toEqual(["canDelete", "canEdit", "createdAt", "id", "nickname", "title"]);
   const second = await (await request.get("/api/posts", { params: { q: token, page: "2" } })).json();
   expect(second.items.length).toBe(1);
   expect(second.q).toBe(token);
@@ -234,20 +228,6 @@ test("creation limit returns Retry-After without blocking reads", async ({ reque
   await expectError(await request.post("/api/posts", { data: { ...data, title: "" } }), 400, "VALIDATION_ERROR");
 });
 
-test("password failure budget is shared across edit and delete, excluding validation and missing posts", async ({ request }) => {
-  const data = input();
-  const post = await create(request, data);
-  const path = `/api/posts/${post.id}`;
-  for (let i = 0; i < 12; i++) {
-    await expectError(await request.patch(path, { data: { ...data, title: "" } }), 400, "VALIDATION_ERROR");
-    await expectError(await request.delete("/api/posts/9007199254740991", { data: { password: data.password } }), 404, "NOT_FOUND");
-  }
-  for (let i = 0; i < 10; i++) {
-    await expectError(await request.delete(path, { data: { password: "wrong-password" } }), 403, "INVALID_PASSWORD");
-  }
-  await expectError(await request.patch(path, { data }), 429, "RATE_LIMITED");
-  expect(await (await request.get(path)).json()).toEqual(post);
-});
 
 test("body limit is byte based and valid maximum escaped text is accepted", async ({ request }) => {
   const data = input();

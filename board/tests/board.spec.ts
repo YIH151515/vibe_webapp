@@ -79,11 +79,11 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
       }
     });
 
-    test("search, paginate and correct an overflow page without losing the query", async ({ page }) => {
+    test("search, paginate and correct an overflow page without losing the query", async ({ page, principal }) => {
       const token = randomUUID();
       await seedPosts(Array.from({ length: 21 }, (_, i) => ({
         title: `${token}-${i}`, content: "일반 텍스트", nickname: "테스트작성자", password,
-      })));
+      })), principal);
       await page.goto("/");
       await page.getByRole("searchbox", { name: "제목과 본문 검색" }).fill(token);
       await page.getByRole("button", { name: "검색", exact: true }).click();

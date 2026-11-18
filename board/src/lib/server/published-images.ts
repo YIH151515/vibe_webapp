@@ -4,7 +4,11 @@ import { BoardError } from "./errors";
 import { UUID } from "./media-transactions";
 import { mediaUnavailable } from "./media-limits";
 
-export async function getPublishedImage(pool: ConnectionPool, store: BlobStore, id: string, request: Request, headOnly = false): Promise<Response> {
+import { requireActivePrincipal } from "./auth-session";
+import type { Principal } from "./auth-principal";
+
+export async function getPublishedImage(pool: ConnectionPool, store: BlobStore, id: string, request: Request, principal: Principal, headOnly = false): Promise<Response> {
+  await requireActivePrincipal(pool, principal);
   if (!UUID.test(id)) throw new BoardError("NOT_FOUND", 404, "이미지를 찾을 수 없습니다.");
   const asset = (await pool.request().input("id", sql.UniqueIdentifier, id).query(`
     SELECT a.blob_name,a.stored_bytes FROM dbo.image_assets a JOIN dbo.posts p ON p.id=a.post_id WHERE a.id=@id AND a.state='attached';
@@ -14,7 +18,7 @@ export async function getPublishedImage(pool: ConnectionPool, store: BlobStore, 
   if (!metadata) throw new BoardError("NOT_FOUND", 404, "이미지를 찾을 수 없습니다.");
   if (metadata.bytes !== asset.stored_bytes) throw mediaUnavailable();
   const headers = { "Content-Type": "image/webp", "Content-Length": String(metadata.bytes), "ETag": metadata.etag,
-    "X-Content-Type-Options": "nosniff", "Cache-Control": "public,max-age=0,must-revalidate" };
+    "X-Content-Type-Options": "nosniff", "Cache-Control": "private,no-store" };
   const tags = request.headers.get("if-none-match")?.split(",").map(value => value.trim().replace(/^W\//, ""));
   if (tags?.includes(metadata.etag) || tags?.includes("*")) return new Response(null, { status: 304, headers });
   if (headOnly) return new Response(null, { headers });

@@ -12,7 +12,6 @@ export function validatePost(input: PostInput): Record<string, string> {
   for (const [key, label, min, max] of [
     ["title", "제목", 1, 100],
     ["content", "본문", 1, 10000],
-    ["nickname", "닉네임", 2, 20],
   ] as const) {
     if (key === "content" && input.document != null) {
       try { normalizeDocument(input.document); }
@@ -25,7 +24,5 @@ export function validatePost(input: PostInput): Record<string, string> {
     const value = (key === "content" ? (input.content ?? "").replace(/\r\n/g, "\n") : input[key]).trim();
     if (value.length < min || value.length > max) errors[key] = `${label}은(는) ${min}~${max}자로 입력해 주세요.`;
   }
-  const password = validatePassword(input.password);
-  if (password) errors.password = password;
   return errors;
 }

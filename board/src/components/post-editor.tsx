@@ -18,7 +18,7 @@ export function PostEditor({ mode, initial }: { mode: "create" | "edit"; initial
   const [initialDocument] = useState(() => initial?.document ?? plainToDocument(initial?.content ?? ""));
   const draft = useRef<EditorDraft>({ json: toEditorDocument(initialDocument), images: new Map() });
   const session = useRef<Session | undefined>(undefined), controller = useRef<AbortController | undefined>(undefined);
-  const [values, setValues] = useState<PostInput>({ title: initial?.title ?? "", content: initial?.content ?? "", nickname: initial?.nickname ?? "", password: "" });
+  const [values, setValues] = useState<PostInput & { nickname: string; password: string }>({ title: initial?.title ?? "", content: initial?.content ?? "", nickname: initial?.nickname ?? "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({}), [failure, setFailure] = useState<unknown>();
   const [busy, setBusy] = useState(false), [progress, setProgress] = useState("");
   const [config, setConfig] = useState<{ enabled: boolean }>(), [configError, setConfigError] = useState<unknown>(), [attempt, setAttempt] = useState(0);
@@ -40,7 +40,7 @@ export function PostEditor({ mode, initial }: { mode: "create" | "edit"; initial
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (submitting.current || !config) return;
-    let input = { ...values }; let validation: Record<string, string>;
+    let input: PostInput = { title: values.title, content: values.content }; let validation: Record<string, string>;
     try {
       if (config.enabled) input = { ...input, document: serializeForSave(draft.current, true) };
       validation = validatePost(input);
@@ -57,7 +57,7 @@ export function PostEditor({ mode, initial }: { mode: "create" | "edit"; initial
         if (images.length) {
           if (!session.current) {
             setProgress("업로드를 준비하고 있습니다…");
-            session.current = { ...await issueUploadSession(initial ? { postId: initial.id, password: values.password } : {}, controller.current.signal), signature };
+            session.current = { ...await issueUploadSession(initial ? { postId: initial.id } : {}, controller.current.signal), signature };
           }
           const token = session.current.token;
           for (let index = 0; index < images.length; index++) {
@@ -69,7 +69,7 @@ export function PostEditor({ mode, initial }: { mode: "create" | "edit"; initial
             image.uploadedSessionToken = token;
           }
         }
-        input = { title: values.title, nickname: values.nickname, password: values.password, document: serializeForSave(draft.current), ...(session.current ? { uploadSessionToken: session.current.token } : {}) };
+        input = { title: values.title, document: serializeForSave(draft.current), ...(session.current ? { uploadSessionToken: session.current.token } : {}) };
       }
       setProgress("이야기를 저장하고 있습니다…");
       const post = initial ? await updatePost(initial.id, input, controller.current.signal) : await createPost(input, controller.current.signal);

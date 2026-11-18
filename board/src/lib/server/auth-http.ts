@@ -1,12 +1,23 @@
 import { readAuthConfig, authUnavailable } from "./auth-config";
 import { beginLogin, finishLogin } from "./auth-flow";
 import { cleanupAuthState, readAppSession, revokeAppSession } from "./auth-session";
-import { unauthorized } from "./auth-principal";
+import { unauthorized, type Principal } from "./auth-principal";
 import { getDatabase } from "./database";
 import { BoardError } from "./errors";
 import { ensureSameOrigin, toErrorResponse } from "./http";
 import { getClientKey } from "./request-context";
 import { withRateLimit } from "./rate-limit";
+export { requireActivePrincipal } from "./auth-session";
+
+export async function requireApiPrincipal(request: Request): Promise<Principal> {
+  const config = readAuthConfig();
+  if (config.mode !== "entra") throw authUnavailable();
+  const cookie = readCookie(request, authCookieNames(config.origin).session);
+  if (!cookie || cookie.length !== 64 || !/^[a-f0-9]{64}$/.test(cookie)) throw unauthorized();
+  const principal = await readAppSession(await getDatabase(), cookie, config);
+  if (!principal) throw unauthorized();
+  return principal;
+}
 
 export function authCookieNames(origin: string) {
   const prefix = new URL(origin).protocol === "https:" ? "__Host-" : "";

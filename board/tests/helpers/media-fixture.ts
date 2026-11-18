@@ -14,6 +14,6 @@ export async function mediaFixture() {
     mediaStoragePipeline(new StorageSharedKeyCredential(env.AZURITE_ACCOUNT!, env.AZURITE_KEY!))).getContainerClient(env.STORAGE_CONTAINER!);
   try { await container.create(); }
   catch (error) { await sql.close(); throw error; }
-  return { pool: sql.pool, store: createBlobStore(env), containerName: env.STORAGE_CONTAINER!,
+  return { pool: sql.pool, principal: sql.principal, context: sql.context, store: createBlobStore(env), containerName: env.STORAGE_CONTAINER!,
     async close() { try { await container.delete(); } finally { await sql.close(); } } };
 }

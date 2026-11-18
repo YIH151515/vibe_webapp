@@ -28,7 +28,7 @@ export function DeletePostForm({ id }: { id: number }): React.JSX.Element {
     submitting.current = true;
     setBusy(true);
     try {
-      await deletePost(id, password);
+      await deletePost(id);
       setPassword("");
       router.push("/");
     } catch (cause) {

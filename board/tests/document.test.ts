@@ -96,11 +96,11 @@ test("plain import preserves LF boundaries and client/server share rich validati
   const plain = "첫 줄\r\n\r\n둘째 줄 😀";
   const document = plainToDocument(plain);
   assert.equal(normalizeDocument(document).text, plain.replace(/\r\n/g, "\n"));
-  const input = { title: "제목", nickname: "작성자", password: "test-password", document };
+  const input = { title: "제목", document };
   assert.deepEqual(validatePost(input), {});
   assert.equal(parsePostInput({ ...input, content: "클라이언트가 조작한 검색어" }).content, "첫 줄\n\n둘째 줄 😀");
-  assert.equal(parsePostInput({ ...input, contentFormat: "plain" }).contentFormat, "rich_v1");
-  assert.equal(parsePostInput({ ...input, document: null, content: "본문", contentFormat: "rich_v1" }).contentFormat, "plain");
+  assert.throws(() => parsePostInput({ ...input, contentFormat: "plain" }), { code: "VALIDATION_ERROR" });
+  assert.equal(parsePostInput({ ...input, document: null, content: "본문" }).contentFormat, "plain");
   assert.ok(validatePost({ ...input, document: { ...document, content: [] } }).content);
   assert.throws(() => parsePostInput({ ...input, uploadSessionToken: "a".repeat(64) + "\n" }), { code: "VALIDATION_ERROR" });
   assert.equal(editorEnabled({ NODE_ENV: "test" }), false);

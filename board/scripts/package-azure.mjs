@@ -34,7 +34,7 @@ export async function packageAzure() {
     await cp(resolve(standalone, name), resolve(staging, name), { recursive: true, dereference: true, filter: allowed });
   // T02 introduces adapters before routes import them. Trace their native/runtime
   // dependencies explicitly instead of relying on unused application imports.
-  const entries = ["sharp", "@azure/storage-blob", "@azure/identity"].flatMap(name => [require.resolve(name), resolve(root, "node_modules", name, "package.json")]);
+  const entries = ["sharp", "@azure/storage-blob", "@azure/identity", "openid-client"].flatMap(name => [require.resolve(name), resolve(root, "node_modules", name, "package.json")]);
   const trace = await nodeFileTrace(entries, { base: root, processCwd: root });
   for (const file of trace.fileList) {
     if (!file.startsWith("node_modules/") || !allowed(resolve(root, file))) throw new Error("Unexpected runtime trace path");

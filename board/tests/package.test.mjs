@@ -26,10 +26,11 @@ test("release ZIP runs independently, serves assets and fails health safely with
   let child;
   try {
     execFileSync("unzip", ["-q", zip, "-d", temp]);
-    const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(SQL_|ADMIN_|APP_|RATE_LIMIT_|MEDIA_|STORAGE_|AZURITE_|EDITOR_|AZURE_)/.test(key)));
+    const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(AUTH_|ENTRA_|TEST_OIDC_|SQL_|ADMIN_|APP_|RATE_LIMIT_|MEDIA_|STORAGE_|AZURITE_|EDITOR_|AZURE_)/.test(key)));
     execFileSync(process.execPath, ["-e", `
       const assert = require('node:assert/strict');
       const sharp = require('sharp');
+      import('openid-client').then(client => assert.equal(typeof client.discovery,'function')).catch(() => {process.exitCode=1;});
       assert.equal(typeof require('@azure/storage-blob').BlobServiceClient, 'function');
       assert.equal(typeof require('@azure/identity').ManagedIdentityCredential, 'function');
       sharp({create:{width:1,height:1,channels:4,background:'transparent'}}).png().toBuffer()
@@ -44,7 +45,7 @@ test("release ZIP runs independently, serves assets and fails health safely with
     const base = `http://127.0.0.1:${port}`;
     let response;
     for (let i = 0; i < 100; i++) {
-      try { response = await fetch(base); if (response.status === 200) break; } catch {}
+      try { response = await fetch(base+"/login"); if (response.status === 200) break; } catch {}
       await new Promise(done => setTimeout(done, 200));
     }
     assert.equal(response?.status, 200);
@@ -55,9 +56,12 @@ test("release ZIP runs independently, serves assets and fails health safely with
     assert.equal(health.status, 503); assert.equal(health.headers.get("cache-control"), "no-store");
     assert.deepEqual(await health.json(), { status: "unavailable" });
     const editorConfig = await fetch(base + "/api/editor-config");
-    assert.equal(editorConfig.status, 200); assert.equal(editorConfig.headers.get("cache-control"), "no-store");
-    assert.deepEqual(await editorConfig.json(), { enabled: false, maxFileBytes: 5242880, maxImages: 5, maxInputBytes: 20971520 });
-    assert.equal((await fetch(base)).status, 200);
+    assert.equal(editorConfig.status, 503); assert.equal(editorConfig.headers.get("cache-control"), "no-store");
+    assert.equal((await editorConfig.json()).error.code,"SERVICE_UNAVAILABLE");
+    assert.equal((await fetch(base)).status, 503);
+    assert.equal((await fetch(base+"/api/posts")).status,503);
+    assert.equal((await fetch(base+"/api/images/invalid")).status,503);
+    assert.ok(!html.includes("글 등록"));
   } finally {
     if (child && child.exitCode === null) { const exited = once(child, "exit"); child.kill("SIGTERM"); await exited; }
     await rm(temp, { recursive: true, force: true });

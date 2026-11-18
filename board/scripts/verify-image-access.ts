@@ -1,5 +1,4 @@
 import { existsSync } from "node:fs";
-import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 import { AzureCliCredential } from "@azure/identity";
 import { ContainerClient } from "@azure/storage-blob";
@@ -20,7 +19,7 @@ async function main() {
   const client = new ContainerClient(process.env.STORAGE_BLOB_SERVICE_URL + "/board-images", mediaStoragePipeline(new AzureCliCredential()));
   console.log(JSON.stringify(await verifyImageAccess(client)));
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && resolve(process.argv[1]) === resolve("scripts/verify-image-access.ts")) {
   void main().catch((error: unknown) => {
     console.error("IMAGE_ACCESS_VERIFICATION_FAILED");
     const diagnostic = error as { code?: unknown; statusCode?: unknown; name?: unknown };

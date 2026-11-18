@@ -16,7 +16,7 @@ export class ApiError extends Error {
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(path, { ...init, cache: "no-store" });
+    response = await fetch(path, { credentials: "same-origin", ...init, cache: "no-store" });
   } catch (error) {
     if (init.signal?.aborted) throw error;
     throw new ApiError(0, "INTERNAL_ERROR", "연결하지 못했습니다. 잠시 후 다시 시도해 주세요.");

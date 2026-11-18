@@ -5,7 +5,7 @@ import { closeDatabase } from "../src/lib/server/database";
 
 test.afterAll(() => closeDatabase());
 
-const password = "browser-password";
+
 
 async function noOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -15,74 +15,33 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
   test.describe(`${viewport.width}px`, () => {
     test.use({ viewport });
 
-    test("create, safely render, reject wrong password, edit and delete with consent", async ({ page, request }) => {
-      const title = `브라우저-${randomUUID()}`;
-      const content = '<script>window.__boardInjected=true</script>\n' + "긴본문".repeat(200);
-      await page.goto("/");
-      await expect(page.getByRole("link", { name: "글쓰기", exact: true })).toBeVisible();
-      await page.getByRole("link", { name: "글쓰기", exact: true }).click();
-      await page.getByRole("button", { name: "글 등록", exact: true }).click();
+    test("create, safely render, edit and delete account posts with consent", async ({page,request})=>{
+      await page.route("**/api/editor-config",route=>route.fulfill({json:{enabled:false}}));
+      const title="브라우저-"+randomUUID(),content='<script>window.__boardInjected=true</script>\n'+"긴본문".repeat(200);
+      await page.goto("/posts/new");await expect(page.locator('input[type="password"]')).toHaveCount(0);
+      await page.getByRole("button",{name:"글 등록",exact:true}).click();
       await expect(page.locator("main").getByRole("alert")).toContainText("입력 내용을 확인");
-      await expect(page.getByRole("textbox", { name: /^제목/ })).toBeFocused();
-      await page.getByRole("textbox", { name: /^제목/ }).fill(title);
-      await page.getByLabel(/^닉네임/).fill("브라우저작성자");
-      await page.getByLabel(/^비밀번호/).fill(password);
-      await page.getByRole("textbox", { name: /^본문/ }).fill(content);
-      await page.getByRole("button", { name: "글 등록", exact: true }).click();
-      await expect(page).toHaveURL(/\/posts\/\d+$/);
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
-      await expect(page.locator(".post-content")).toHaveText(content, { useInnerText: true });
-      expect(await page.evaluate(() => "__boardInjected" in window)).toBe(false);
-      expect(await page.content()).not.toContain("password_hash");
-      expect(await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }))).not.toContain(password);
-      expect(page.url()).not.toContain(password);
-      const id = Number(new URL(page.url()).pathname.split("/").pop());
-      const publicPost = await (await request.get(`/api/posts/${id}`)).json();
-      expect(Object.keys(publicPost).sort()).toEqual(["content", "contentFormat", "createdAt", "document", "id", "nickname", "title"]);
-      const date = await page.locator("article time").getAttribute("datetime");
-      await noOverflow(page);
-      await page.screenshot({ path: `test-results/board-post-${viewport.width}.png`, fullPage: true });
-      await expect(page.getByRole("link", { name: "글 수정", exact: true })).toBeVisible();
-      await expect(page.getByRole("link", { name: "글 삭제", exact: true })).toBeVisible();
-      await page.getByRole("link", { name: "글 수정", exact: true }).click();
-      await expect(page.getByRole("textbox", { name: /^제목/ })).toHaveValue(title);
-      await expect(page.getByLabel(/^비밀번호/)).toHaveValue("");
-      await page.getByRole("textbox", { name: /^제목/ }).fill(title + "-수정");
-      await page.getByLabel(/^비밀번호/).fill("wrong-password");
-      await page.getByRole("button", { name: "수정 저장" }).click();
-      await expect(page.locator("main").getByRole("alert")).toHaveText("비밀번호가 일치하지 않습니다.");
-      await expect(page.getByLabel(/^비밀번호/)).toHaveValue("");
-      await expect(page.getByRole("textbox", { name: /^제목/ })).toHaveValue(title + "-수정");
-      await page.getByLabel(/^비밀번호/).fill(password);
-      await page.getByRole("button", { name: "수정 저장" }).click();
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(title + "-수정");
-      await expect(page.locator("article time")).toHaveAttribute("datetime", date!);
-      await page.getByRole("link", { name: "글 삭제", exact: true }).click();
-      await expect(page.getByRole("button", { name: "글 삭제", exact: true })).toBeDisabled();
-      await page.getByRole("link", { name: "취소", exact: true }).click();
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(title + "-수정");
-      await page.getByRole("link", { name: "글 삭제", exact: true }).click();
-      await page.getByLabel(/^비밀번호/).fill("wrong-password");
-      await page.getByLabel("삭제에 동의합니다").check();
-      await page.getByRole("button", { name: "글 삭제", exact: true }).click();
-      await expect(page.locator("main").getByRole("alert")).toHaveText("비밀번호가 일치하지 않습니다.");
-      await expect(page.getByLabel(/^비밀번호/)).toHaveValue("");
-      await page.getByLabel(/^비밀번호/).fill(password);
-      await noOverflow(page);
-      await page.getByRole("button", { name: "글 삭제", exact: true }).click();
-      await expect(page).toHaveURL("http://127.0.0.1:3100/");
-      expect((await request.get(`/api/posts/${id}`)).status()).toBe(404);
-      for (const suffix of ["", "/edit", "/delete"]) {
-        await page.goto(`/posts/${id}${suffix}`);
-        await expect(page.getByRole("heading", { level: 1 })).toHaveText("글을 찾을 수 없습니다");
-        await expect(page.getByRole("link", { name: "목록으로", exact: true })).toBeVisible();
-      }
+      await page.getByRole("textbox",{name:/^제목/}).fill(title);await page.getByRole("textbox",{name:/^본문/}).fill(content);
+      await page.getByRole("button",{name:"글 등록",exact:true}).click();await expect(page).toHaveURL(/\/posts\/\d+$/);
+      await expect(page.locator(".post-content")).toHaveText(content,{useInnerText:true});expect(await page.evaluate(()=>"__boardInjected" in window)).toBe(false);
+      const id=Number(new URL(page.url()).pathname.split("/").pop()),date=await page.locator("article time").getAttribute("datetime");
+      expect((await (await request.get("/api/posts/"+id)).json()).canEdit).toBe(true);await noOverflow(page);
+      await page.screenshot({path:"test-results/board-post-"+viewport.width+".png",fullPage:true});
+      await page.getByRole("link",{name:"글 수정",exact:true}).click();await page.getByRole("textbox",{name:/^제목/}).fill(title+" 수정");
+      await page.getByRole("button",{name:"수정 저장"}).click();await expect(page.getByRole("heading",{level:1})).toHaveText(title+" 수정");
+      await expect(page.locator("article time")).toHaveAttribute("datetime",date!);
+      await page.getByRole("link",{name:"글 삭제",exact:true}).click();await expect(page.getByRole("button",{name:"글 삭제",exact:true})).toBeDisabled();
+      await page.getByRole("link",{name:"취소",exact:true}).click();await expect(page.getByRole("heading",{level:1})).toHaveText(title+" 수정");
+      await page.getByRole("link",{name:"글 삭제",exact:true}).click();await page.getByLabel("삭제에 동의합니다").check();await noOverflow(page);
+      await page.getByRole("button",{name:"글 삭제",exact:true}).click();await expect(page).toHaveURL("http://127.0.0.1:3100/");
+      expect((await request.get("/api/posts/"+id)).status()).toBe(404);
+      for(const suffix of ["","/edit","/delete"]){await page.goto("/posts/"+id+suffix);await expect(page.getByRole("heading",{level:1})).toHaveText("글을 찾을 수 없습니다");}
     });
 
     test("search, paginate and correct an overflow page without losing the query", async ({ page, principal }) => {
       const token = randomUUID();
       await seedPosts(Array.from({ length: 21 }, (_, i) => ({
-        title: `${token}-${i}`, content: "일반 텍스트", nickname: "테스트작성자", password,
+        title: `${token}-${i}`, content: "일반 텍스트",
       })), principal);
       await page.goto("/");
       await page.getByRole("searchbox", { name: "제목과 본문 검색" }).fill(token);
@@ -136,8 +95,8 @@ test("empty board and non-JSON failures are understandable", async ({ page }) =>
   await expect(page.locator("main").getByRole("alert")).toContainText("응답을 확인하지 못했습니다");
 });
 
-test("rate limit feedback includes wait time and clears only the password", async ({ page, request }) => {
-  const data = { title: "제한 안내", content: "본문", nickname: "작성자", password };
+test("rate limit feedback includes wait time and preserves the draft", async ({ page, request }) => {
+  const data = { title: "제한 안내", content: "본문", };
   const response = await request.post("/api/posts", { data });
   expect(response.status()).toBe(201);
   const { id } = await response.json();
@@ -151,9 +110,9 @@ test("rate limit feedback includes wait time and clears only the password", asyn
     });
   });
   await page.getByRole("textbox", { name: /^제목/ }).fill("유지할 제목");
-  await page.getByLabel(/^비밀번호/).fill(password);
+
   await page.getByRole("button", { name: "수정 저장" }).click();
   await expect(page.locator("main").getByRole("alert")).toContainText("60초");
   await expect(page.getByRole("textbox", { name: /^제목/ })).toHaveValue("유지할 제목");
-  await expect(page.getByLabel(/^비밀번호/)).toHaveValue("");
+
 });

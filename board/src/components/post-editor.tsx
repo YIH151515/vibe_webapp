@@ -13,12 +13,12 @@ import { RichEditor } from "./rich-editor";
 import { RichContent } from "./rich-content";
 
 type Session = { token: string; expiresAt: string; signature: string };
-export function PostEditor({ mode, initial }: { mode: "create" | "edit"; initial?: Post }): React.JSX.Element {
+export function PostEditor({ mode, initial, authorName }: { mode: "create" | "edit"; initial?: Post; authorName?: string }): React.JSX.Element {
   const router = useRouter();
   const [initialDocument] = useState(() => initial?.document ?? plainToDocument(initial?.content ?? ""));
   const draft = useRef<EditorDraft>({ json: toEditorDocument(initialDocument), images: new Map() });
   const session = useRef<Session | undefined>(undefined), controller = useRef<AbortController | undefined>(undefined);
-  const [values, setValues] = useState<PostInput & { nickname: string; password: string }>({ title: initial?.title ?? "", content: initial?.content ?? "", nickname: initial?.nickname ?? "", password: "" });
+  const [values, setValues] = useState<PostInput>({ title: initial?.title ?? "", content: initial?.content ?? "" });
   const [errors, setErrors] = useState<Record<string, string>>({}), [failure, setFailure] = useState<unknown>();
   const [busy, setBusy] = useState(false), [progress, setProgress] = useState("");
   const [config, setConfig] = useState<{ enabled: boolean }>(), [configError, setConfigError] = useState<unknown>(), [attempt, setAttempt] = useState(0);
@@ -75,12 +75,12 @@ export function PostEditor({ mode, initial }: { mode: "create" | "edit"; initial
       const post = initial ? await updatePost(initial.id, input, controller.current.signal) : await createPost(input, controller.current.signal);
       session.current = undefined;
       for (const image of draft.current.images.values()) { if (image.previewUrl) URL.revokeObjectURL(image.previewUrl); image.previewUrl = ""; }
-      draft.current.images.clear(); setValues(value => ({ ...value, password: "" }));
+      draft.current.images.clear();
       router.push(`/posts/${post.id}`);
     } catch (error) {
       if (controller.current.signal.aborted) return;
       setFailure(error); if (error instanceof ApiError) { setErrors(error.fieldErrors ?? {}); if ([401, 409].includes(error.status)) await discardSession(); }
-      setValues(value => ({ ...value, password: "" })); setBusy(false); submitting.current = false; setProgress("");
+       setBusy(false); submitting.current = false; setProgress("");
     }
   }
   if (!config && !configError) return <Loading />;
@@ -90,14 +90,14 @@ export function PostEditor({ mode, initial }: { mode: "create" | "edit"; initial
   return <>
     <Link className="back-link" href={back}>← {initial ? "이야기로 돌아가기" : "전체 이야기"}</Link>
     <section className="panel editor"><div className="form-heading"><p className="eyebrow">당신의 이야기를 기다려요</p><h1>{mode === "edit" ? "이야기 수정하기" : "새 이야기 쓰기"}</h1><p>서로를 존중하는 따뜻한 이야기를 나눠주세요.</p></div>
+      <p className="field-help">작성자: {initial?.nickname ?? authorName ?? "로그인한 회사 계정"}</p>
       <form method="post" onSubmit={submit} noValidate aria-busy={busy}>
-        {(["title", "nickname", "password"] as const).map(field => <div className="form-field" key={field}>
-          <label htmlFor={`field-${field}`}>{{ title: "제목", nickname: "닉네임", password: "비밀번호" }[field]}<span className="required" aria-hidden="true"> *</span></label>
-          <input id={`field-${field}`} name={field} value={values[field]} type={field === "password" ? "password" : "text"} maxLength={{ title: 100, nickname: 20, password: 64 }[field]} required disabled={busy}
-            aria-invalid={!!errors[field]} aria-describedby={errors[field] ? `error-${field}` : field === "password" ? "password-help" : undefined}
-            autoComplete={field === "password" ? (mode === "create" ? "new-password" : "current-password") : "off"}
+        {(["title"] as const).map(field => <div className="form-field" key={field}>
+          <label htmlFor={`field-${field}`}>제목<span className="required" aria-hidden="true"> *</span></label>
+          <input id={`field-${field}`} name={field} value={values[field]} type="text" maxLength={100} required disabled={busy}
+            aria-invalid={!!errors[field]} aria-describedby={errors[field] ? `error-${field}` : undefined}
+            autoComplete="off"
             onChange={event => setValues(value => ({ ...value, [field]: event.target.value }))} />
-          {field === "password" && <p className="field-help" id="password-help">{initial ? "작성할 때 사용한 비밀번호를 입력해 주세요." : "수정·삭제할 때 필요합니다. 잊어버리면 복구할 수 없습니다."}</p>}
           {errors[field] && <p className="field-error" id={`error-${field}`}>{errors[field]}</p>}
         </div>)}
         <div className="form-field"><label htmlFor="field-content">본문<span className="required" aria-hidden="true"> *</span></label>
@@ -106,7 +106,7 @@ export function PostEditor({ mode, initial }: { mode: "create" | "edit"; initial
           {errors.content && <p className="field-error" id="error-content">{errors.content}</p>}
         </div>
         <div aria-live="polite" role="status">{progress}</div>
-        <div aria-live="polite">{failure ? <p className="error-message" role="alert">{failure instanceof Error ? failure.message : "처리 중 오류가 발생했습니다."}{failure instanceof ApiError && failure.retryAfterSeconds ? ` ${failure.retryAfterSeconds}초 후 다시 시도해 주세요.` : ""}</p> : Object.keys(errors).length ? <p className="error-message" role="alert">입력 내용을 확인해 주세요.</p> : null}</div>
+        <div aria-live="polite">{failure instanceof ApiError && failure.status === 401 && <p><a href="/login" target="_blank" rel="noopener noreferrer">새 창에서 다시 로그인</a>한 뒤 저장을 다시 시도해 주세요. 이 화면의 초안은 유지됩니다. 이 화면을 새로고침하거나 이동하면 초안이 사라집니다.</p>}{failure ? <p className="error-message" role="alert">{failure instanceof Error ? failure.message : "처리 중 오류가 발생했습니다."}{failure instanceof ApiError && failure.retryAfterSeconds ? ` ${failure.retryAfterSeconds}초 후 다시 시도해 주세요.` : ""}</p> : Object.keys(errors).length ? <p className="error-message" role="alert">입력 내용을 확인해 주세요.</p> : null}</div>
         <div className="form-actions"><Link className="button secondary" href={back}>취소</Link><button className="button primary" type="submit" disabled={busy}>{busy ? "저장 중…" : initial ? "수정 저장" : "글 등록"}</button></div>
       </form>
     </section>

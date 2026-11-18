@@ -20,11 +20,12 @@ export function PostDetail({ id }: { id: number }): React.JSX.Element {
           <div className="post-meta"><span>{post.nickname}</span><span aria-hidden="true">·</span><time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time></div>
         </header>
         {post.document ? <RichContent document={post.document} /> : <div className="post-content">{post.content}</div>}
+        {!post.canEdit && <p className="field-help">이 글은 읽기 전용입니다.</p>}
         <footer className="post-footer">
           <Link className="button secondary" href="/">목록으로</Link>
           <div className="actions">
-            <Link className="button secondary" href={`/posts/${id}/edit`}>글 수정</Link>
-            <Link className="button danger-outline" href={`/posts/${id}/delete`}>글 삭제</Link>
+            {post.canEdit && <Link className="button secondary" href={`/posts/${id}/edit`}>글 수정</Link>}
+            {post.canDelete && <Link className="button danger-outline" href={`/posts/${id}/delete`}>글 삭제</Link>}
           </div>
         </footer>
       </article>

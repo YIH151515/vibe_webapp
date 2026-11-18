@@ -21,7 +21,7 @@ export async function verifySqlAccess(app: ConnectionPool, admin: ConnectionPool
     assert.equal(broad.recordset[0].owner, 0); assert.equal(broad.recordset[0].alter, 0);
     const schema = await app.request().query<{version:number}>("SELECT MAX(version) AS version FROM dbo.schema_migrations");
     assert.equal(schema.recordset[0].version, EXPECTED_SCHEMA_VERSION);
-    for (const table of ["posts", "rate_buckets", "admin_sessions", "upload_sessions", "image_assets", "media_capacity", "media_buckets", "media_reservations", "image_delete_jobs", "media_maintenance"]) {
+    for (const table of ["posts", "rate_buckets", "admin_sessions", "upload_sessions", "image_assets", "media_capacity", "media_buckets", "media_reservations", "image_delete_jobs", "media_maintenance", "board_users", "auth_sessions", "oidc_login_attempts"]) {
       const permission = await app.request().input("table", sql.NVarChar(128), "dbo." + table)
         .query<{s:number;i:number;u:number;d:number}>(`SELECT
           HAS_PERMS_BY_NAME(@table,'OBJECT','SELECT') AS s,

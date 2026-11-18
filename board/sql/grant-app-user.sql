@@ -9,3 +9,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON OBJECT::dbo.media_buckets TO [board_app]
 GRANT SELECT, INSERT, UPDATE, DELETE ON OBJECT::dbo.media_reservations TO [board_app];
 GRANT SELECT, INSERT, UPDATE, DELETE ON OBJECT::dbo.image_delete_jobs TO [board_app];
 GRANT SELECT, INSERT, UPDATE, DELETE ON OBJECT::dbo.media_maintenance TO [board_app];
+GRANT SELECT, INSERT, UPDATE, DELETE ON OBJECT::dbo.board_users TO [board_app];
+GRANT SELECT, INSERT, UPDATE, DELETE ON OBJECT::dbo.auth_sessions TO [board_app];
+GRANT SELECT, INSERT, UPDATE, DELETE ON OBJECT::dbo.oidc_login_attempts TO [board_app];

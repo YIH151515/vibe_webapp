@@ -18,6 +18,8 @@ export function validateEntraClaims(claims: Record<string, unknown>, config: Ent
   if (tenantId !== config.tenantId || (claims.acct !== 0 && claims.acct !== "0")) throw forbidden();
   if (typeof claims.exp !== "number" || !Number.isSafeInteger(claims.exp) || claims.exp <= Date.now() / 1000 ||
     !Number.isFinite(new Date(claims.exp * 1000).getTime())) throw unauthorized();
+  if (claims.iat !== undefined && (typeof claims.iat !== "number" || !Number.isSafeInteger(claims.iat) ||
+    claims.iat < 0 || claims.iat > Date.now() / 1000 + 30 || claims.iat > claims.exp)) throw unauthorized();
   const roles = claims.roles === undefined ? [] : claims.roles;
   if (!Array.isArray(roles) || roles.length > 32 || roles.some(role => typeof role !== "string" || !role.length || role.length > 128)) throw unauthorized();
   return { tenantId, objectId, displayName: validDisplayName(claims.name), isAdmin: roles.includes("Board.Admin"), tokenExpiresAt: new Date(claims.exp * 1000) };

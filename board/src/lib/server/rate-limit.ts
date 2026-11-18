@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import sql, { type ConnectionPool } from "mssql";
 import { BoardError, RateLimitError } from "./errors";
 
-export type RateAction = "post-create" | "post-password" | "admin-login";
+export type RateAction = "post-create" | "post-password" | "admin-login" | "oidc-login";
 export type RateReservation = {
   action: RateAction; clientKey: string; generation: string; finished: boolean;
 };
@@ -11,6 +11,7 @@ const policies = {
   "post-create": { limit: 5, seconds: 600 },
   "post-password": { limit: 10, seconds: 600 },
   "admin-login": { limit: 5, seconds: 900 },
+  "oidc-login": { limit: 10, seconds: 600 },
 } as const;
 type Bucket = { generation: string; used_count: number; pending_count: number; expires_at: Date };
 
@@ -118,6 +119,6 @@ export async function withRateLimit<T>(
     await finish(pool, reservation, count);
     throw error;
   }
-  await finish(pool, reservation, action === "post-create");
+  await finish(pool, reservation, action === "post-create" || action === "oidc-login");
   return value;
 }

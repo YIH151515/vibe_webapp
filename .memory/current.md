@@ -7,7 +7,7 @@
 [P02 화면과 실제 Entra 운영 전환](./phases/2026-11-18-entra-id-login/P02-entra-delivery/phase.md)
 
 ## Active Task
-[P02-T02 Entra 앱·역할·설정과 사전 로그인](./phases/2026-11-18-entra-id-login/P02-entra-delivery/T02-entra-provisioning.md)
+[P02-T03 닫힌 운영 전환과 실제 로그인 검증](./phases/2026-11-18-entra-id-login/P02-entra-delivery/T03-private-release.md)
 
 ## Status
 - 사용자 요청: 실제 서버 반영과 링크 제공까지 자동 연속 실행. 새버전 운영배포는 아직이며 실제회사로그인/MFA가 필수로 남았다.
@@ -24,4 +24,4 @@
 - 사용자3000/next-env의두.next/dev/types경로/루트.agents/.codeburn/AGENTS/README/zip/SQLite·Dockerpad보존. 새T02소스·메모리는미커밋작업트리로보존. Git원격main은96edfc50b2dae16b195d1b219d0fcd335c62f55d, push없음. gh는현재PATH에없으므로최종Task에서공식CLI/GCM-REST준비필요(PAT채팅요청금지).
 
 ## Next Step (IMPORTANT)
-사용자가로그인준비되면 cwd board에서 scripts/verify-entra-registration.ps1을다시실행하고열린회사로그인/MFA를직접완료하도록안내한다. 실제tenantMatches/member/admin=true와checks를받아야T02를done으로하고청사진지정commit/phase/current동기화후P02-T03을읽는다. 실제MFA미완료를성공으로꾸미거나SQL5/main배포로앞서가지않는다. 사용자요청한실제배포목표는유지한다. T02의안전한준비는완료했으며새source/artifact baseline/권한/별도secret은확보했다. 다음Task에서닫힌baseline→원본snapshot→migration5·grants→Actions/SHA→Entra enable→실제로컬3200/운영SSO·자체QA(총2글/3이미지/3세션한도)·정리순서다. schema4/anonymous롤백금지. 실제계정로그인/MFA만사람이수행한다.
+T02 source90bb2cc 완료, done5/6. 실제사전SSO재시도73649 exit0 tenantMatches/member/admin=true, Code/PKCE/nonce/signature/최초관리자OID/Board.Admin확인. 현재사전검사3200는정리됐다. 마지막T03청사진을읽고닫힌baseline→원본snapshot→SQL5/grants→Actions/SHA→Entra enable→실제로컬3200/운영SSO·자체QA·정리를수행한다. 운영코드/SQL은여전히77fe827/schema4이며구상태기록은참고하고실제재확인한다. 총실제QA2글/3이미지/3업로드세션한도, 기존3000/next-env/도구보존, secret/log/trace/HAR금지. 사용자요청한운영배포까지자동연속한다.

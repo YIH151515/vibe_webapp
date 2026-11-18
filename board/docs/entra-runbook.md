@@ -114,3 +114,11 @@ Member 거부는 acct, tenant, 역할·OID 검증을 유지한 채 원인을 확
 
 첫 대기 미완료 후 기본 브라우저와 loopback 직접 링크로 재시도했다.
 tenantMatches/member/admin 모두 true이며 real-code-pkce-nonce-signature, tenant-member, initial-administrator-oid, Board.Admin 검증에 성공했다. SQL·앱세션을 만들지 않는 사전 검사다. 실제 로컬·운영 앱 로그인과 자체 QA는 SQL5 전환 후 별도로 수행한다.
+
+## 최종 전환 도구
+
+release-entra.ps1은검증된schema5기준ZIP으로먼저콘텐츠를닫고버전을설정한다. cutover-entra-sql.ts는원본글/비밀번호해시/작성일/기존첨부참조를메모리에만보관해migration2회·앱grants·실제제한계정검증후비교한다. 원본데이터나snapshot을파일/로그에저장하지않는다.
+
+실제로그인후Entra가추가한0역할기본접근할당은관리자권한이아니므로보존한다. Verify는비0역할중Board.Admin이확정윤일호User에게만있는지검사한다. [공식appRoleAssignment정의](https://learn.microsoft.com/en-us/graph/api/resources/approleassignment?view=graph-rest-1.0)에따르며추가관리자/그룹/다른역할은계속거부한다.
+
+실제QA도구는별도의loopback제어BrowserServer를사용하고자신이시작한창만앞으로표시한다. cookies/WS제어주소/token은출력·저장하지않으며브라우저와자체3200서버를정리한다. 사용자3000서버는종료하지않는다.

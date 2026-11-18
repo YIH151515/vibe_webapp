@@ -55,3 +55,9 @@ function Save-EntraSecrets($Secrets) {
 function Get-EntraSettings([string]$Token) {
   return Invoke-BoardRest 'POST' ('https://management.azure.com'+$script:EntraSite+'/config/appsettings/list?api-version=2024-11-01') $Token
 }
+function Test-BoardAdministratorAssignments($Assignments) {
+  # Entra consent may add Default Access (zero role); it never grants Board.Admin.
+  $custom=@($Assignments | Where-Object { $_.appRoleId -ne '00000000-0000-0000-0000-000000000000' })
+  return ($custom.Count -eq 1 -and $custom[0].principalId -eq $script:EntraSpec.administratorObjectId -and
+    $custom[0].principalType -eq 'User' -and $custom[0].appRoleId -eq $script:EntraSpec.role.id)
+}

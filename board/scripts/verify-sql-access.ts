@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import sql, { type ConnectionPool } from "mssql";
 import { openDatabase, readSqlConfig } from "../src/lib/server/database";
 import { EXPECTED_SCHEMA_VERSION } from "../src/lib/server/schema-version";
+import { resolve } from "node:path";
 
 export async function verifySqlAccess(app: ConnectionPool, admin: ConnectionPool): Promise<void> {
   const marker = "qa-" + randomUUID();
@@ -58,4 +59,6 @@ try {
 }
 finally { await app?.close(); await admin?.close(); }
 }
-void main().catch(() => { console.error("SQL verification configuration unavailable."); process.exitCode = 1; });
+if (process.argv[1] && resolve(process.argv[1]) === resolve("scripts/verify-sql-access.ts")) {
+  void main().catch(() => { console.error("SQL verification configuration unavailable."); process.exitCode = 1; });
+}

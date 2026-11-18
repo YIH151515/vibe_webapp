@@ -70,9 +70,13 @@ export async function verifyLiveEntra(input:LiveEntraInput,deps:{context:Browser
   stage="created-post-and-private-image";
   const postResponse=await call("/api/posts/"+id);assert.equal(postResponse.status(),200);const post=await postResponse.json() as Post;assert.equal(post.canEdit,true);assert.equal(post.contentFormat,"rich_v1");
   await expect(page.locator(".rich-content strong")).toContainText("서식 QA");
-  assert.equal((await call("/api/posts/"+id,"PATCH",{title:prefix,content:"위조",nickname:"위조"})).status(),400,"identity-input-rejected");
+  await expect(page.locator(".user-name")).toHaveText(session.displayName);
+  for(const width of [1280,390]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),"responsive-post-width");}
+  for(const field of ["nickname","password","author_object_id"])assert.equal((await call("/api/posts/"+id,"PATCH",{title:prefix,content:"위조",[field]:"위조"})).status(),400,"identity-input-rejected");
   const first=[...assets.keys()][0],imagePath="/api/images/"+first,image=await call(imagePath);assert.equal(image.status(),200);assert.equal(image.headers()["cache-control"],"private,no-store");const etag=image.headers().etag,imageHash=createHash("sha256").update(await image.body()).digest("hex");
   assert.equal((await call(imagePath,"GET",undefined,{"If-None-Match":etag})).status(),304);assert.equal((await anonymous(imagePath,{"If-None-Match":etag})).status,401);
+  assert.equal((await call(imagePath,"HEAD")).status(),200);
+  assert.equal((await fetch(origin+imagePath,{method:"HEAD",signal:AbortSignal.timeout(20000)})).status,401,"anonymous-image-head-denied");
   if(origin===productionUrl){
    const client=new ContainerClient(process.env.STORAGE_BLOB_SERVICE_URL+"/board-images",mediaStoragePipeline(new AzureCliCredential()));await verifyImageAccess(client);
    const blobResponse=await fetch(client.url+"/"+assets.get(first)!.blob_name,{redirect:"manual",signal:AbortSignal.timeout(20000)});assert.ok([401,403,404,409].includes(blobResponse.status),"direct-blob-private");
@@ -81,6 +85,7 @@ export async function verifyLiveEntra(input:LiveEntraInput,deps:{context:Browser
   stage="search-and-update";
   const search=await call("/api/posts?q="+encodeURIComponent(prefix));assert.ok((await search.json()).items.some((p:{id:number})=>p.id===id));
   await page.goto(origin+"/posts/"+id+"/edit");await page.getByRole("textbox",{name:/^제목/}).fill(prefix+" 수정");
+  for(const width of [1280,390]){await page.setViewportSize({width,height:844});await expect(page.getByRole("button",{name:"굵게",exact:true})).toBeVisible();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),"responsive-editor-width");}
   if(input.qaProfile!=="local-smoke")await page.getByLabel("이미지 선택",{exact:true}).setInputFiles({name:"qa-add.png",mimeType:"image/png",buffer:png});
   await page.getByRole("button",{name:"수정 저장",exact:true}).click();await expect(page).toHaveURL(new RegExp("/posts/"+id+"$"),{timeout:60000});await Promise.all(observations);await reconcile();assert.ok(assets.size<=(input.qaProfile==="local-smoke"?1:2));assert.ok(tokens.size<=(input.qaProfile==="local-smoke"?1:2));
   assert.equal((await (await call("/api/posts/"+id)).json() as Post).createdAt,post.createdAt);
@@ -129,14 +134,24 @@ export async function liveEntraMain(){
  assert.ok(!process.env.APP_TEST_MODE||process.env.APP_TEST_MODE==="0");process.loadEnvFile(".env.local");
  assert.equal(process.env.SQL_SERVER,"sql-vibe-board-7b1417.database.windows.net");assert.equal(process.env.SQL_DATABASE,"dbboardprod");
  assert.equal(process.env.STORAGE_AUTH_MODE,"azure-cli");assert.equal(process.env.STORAGE_BLOB_SERVICE_URL,"https://stvibeboardimg7b1417.blob.core.windows.net");
- const browser=await chromium.launch({headless:false}),context=await browser.newContext({serviceWorkers:"block"}),pool=await openDatabase(readSqlConfig(process.env,"migration"));
+ const pool=await openDatabase(readSqlConfig(process.env,"migration"));
+ let browserServer:Awaited<ReturnType<typeof chromium.launchServer>>|undefined,browser:Awaited<ReturnType<typeof chromium.connect>>|undefined;
  try{
+  browserServer=await chromium.launchServer({headless:false,host:"127.0.0.1",args:["--start-maximized"]});
+  browser=await chromium.connect(browserServer.wsEndpoint());const context=await browser.newContext({serviceWorkers:"block"});
   console.log("ENTRA_SIGN_IN_REQUIRED: 열린 브라우저에서 회사 계정 로그인과 MFA를 완료해 주세요. 최대 10분 동안 기다립니다.");
-  const page=await context.newPage();await page.goto(url+"/login");await page.getByRole("button",{name:"회사 계정으로 로그인"}).click();await page.waitForURL(u=>u.origin===url&&!u.pathname.startsWith("/login")&&!u.pathname.startsWith("/api/auth"),{timeout:600000});
+  const page=await context.newPage();await page.goto(url+"/login");await page.getByRole("button",{name:"회사 계정으로 로그인"}).click();
+  if(process.platform==="win32"){
+   const pid=browserServer.process().pid;assert.ok(Number.isInteger(pid));
+   const command='Add-Type -TypeDefinition \'using System; using System.Runtime.InteropServices; public class BoardBrowserFocus { [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd,int nCmdShow); [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd); }\'; $window=(Get-Process -Id '+pid+').MainWindowHandle; if($window -ne 0){[void][BoardBrowserFocus]::ShowWindowAsync($window,9);[void][BoardBrowserFocus]::SetForegroundWindow($window)}';
+   await promisify(execFile)("powershell.exe",["-NoProfile","-Command",command],{windowsHide:true}).catch(()=>{console.log("ENTRA_LOGIN_WINDOW_USE_TASKBAR");});
+  }
+  console.log("ENTRA_APP_LOGIN_BROWSER_READY");
+  await page.waitForURL(u=>u.origin===url&&!u.pathname.startsWith("/login")&&!u.pathname.startsWith("/api/auth"),{timeout:600000});
   const result=await verifyLiveEntra({url,expectedCommit:commit,allowQaWrites:args.includes("--qa-writes"),expectAdmin:true,qaProfile:url===productionUrl?"production-full":"local-smoke"},{context,operatorPool:pool,store:createBlobStore(process.env),restart:async()=>{
    if(url!==productionUrl)return;
    await promisify(execFile)("powershell.exe",["-NoProfile","-Command","az webapp restart --subscription 7b1417d8-833d-4ba9-a5cd-d27c91a28b83 --resource-group rg-vibe-board-prod --name app-vibe-board-prod-7b1417 --output none --only-show-errors; if ($LASTEXITCODE -ne 0) { exit 1 }"],{windowsHide:true});
   }});console.log(JSON.stringify(result));
- }finally{await pool.close();await browser.close();}
+ }finally{await pool.close();await browser?.close();await browserServer?.close();}
 }
 if(process.argv[1]&&resolve(process.argv[1])===resolve("scripts/verify-live-entra.ts"))void liveEntraMain().catch(()=>{console.error("LIVE_ENTRA_CHECK_FAILED: 로그인 상태 또는 자체 QA 정리를 확인해 주세요.");process.exitCode=1;});

@@ -45,3 +45,14 @@ test("Next dotenv roundtrip handles secret punctuation without printing or repla
     assert.match(await readFile(join(directory, ".env.local"), "utf8"), /^UNRELATED_SETTING=preserved\n/);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+test("default access after consent cannot grant administrator privilege or hide another role assignment", () => {
+  const common = resolve("scripts/entra-common.ps1").replaceAll("'", "''");
+  const script = ". '" + common + "'; $admin=@{principalId='e8222b20-96f4-4c25-a3af-1f40ebbbec56';principalType='User';appRoleId='b804ef25-9734-4e12-87e3-b8ea76c73353'};" +
+    "$default=@{principalId='e8222b20-96f4-4c25-a3af-1f40ebbbec56';principalType='User';appRoleId='00000000-0000-0000-0000-000000000000'};" +
+    "$other=@{principalId='11111111-1111-4111-8111-111111111111';principalType='User';appRoleId='b804ef25-9734-4e12-87e3-b8ea76c73353'};" +
+    "if(!(Test-BoardAdministratorAssignments @($admin,$default))){throw 'VALID_ROLE_REJECTED'};" +
+    "if(Test-BoardAdministratorAssignments @($default)){throw 'DEFAULT_ESCALATED'};" +
+    "if(Test-BoardAdministratorAssignments @($admin,$default,$other)){throw 'OTHER_ADMIN_ACCEPTED'};Write-Output 'ENTRA_ASSIGNMENTS_OK'";
+  const result = execFileSync("pwsh", ["-NoProfile", "-NonInteractive", "-Command", script], { encoding: "utf8", windowsHide: true, timeout: 30000 });
+  assert.equal(result.trim(), "ENTRA_ASSIGNMENTS_OK");
+});

@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import sql, { type ConnectionPool } from "mssql";
 import { openDatabase, readSqlConfig } from "../src/lib/server/database";
 import { migrateDatabase } from "../src/lib/server/migrations";
@@ -26,6 +25,6 @@ async function main(): Promise<void> {
   } catch { console.error("SQL provisioning failed; credentials and SQL text are suppressed."); process.exitCode = 1; }
   finally { await pool?.close(); }
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && resolve(process.argv[1]) === resolve("scripts/provision-sql.ts")) {
   void main().catch(() => { console.error("SQL provisioning configuration unavailable."); process.exitCode = 1; });
 }

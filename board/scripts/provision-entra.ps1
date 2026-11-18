@@ -81,7 +81,7 @@ try {
         Save-EntraMetadata $metadata
         $assigned=Invoke-BoardRest 'GET' ($spUrl+'/appRoleAssignedTo') $graphToken
       }
-      if (@($assigned.value).Count -ne 1 -or $assigned.value[0].principalId -ne $script:EntraSpec.administratorObjectId -or $assigned.value[0].appRoleId -ne $script:EntraSpec.role.id) { throw 'ENTRA_ADMIN_ASSIGNMENT_MISMATCH' }
+      if (!(Test-BoardAdministratorAssignments -Assignments @($assigned.value))) { throw 'ENTRA_ADMIN_ASSIGNMENT_MISMATCH' }
       Write-Output ('ENTRA_CLIENT_VERIFIED '+$environment+' '+$record.clientId)
     } catch {
       $safeCode = $_.Exception.Message

@@ -11,7 +11,7 @@
 
 ## Status
 - 사용자 요청: 실제 서버 반영과 링크 제공까지 자동 연속 실행. 새버전 운영배포는 아직이며 실제회사로그인/MFA가 필수로 남았다.
-- done4/6. P01완료3/3: SQL5/session cc6cd9c, OIDC b47774d, 서버권한8bc9c2b. P02-T01 UI/페이지보호/실제QA도구 a9dd971 완료. 현재HEAD c62339c5eadfa61ff61083912801aa79de383072(문서포인터).
+- done4/6. P01완료3/3: SQL5/session cc6cd9c, OIDC b47774d, 서버권한8bc9c2b. P02-T01 UI/페이지보호/실제QA도구 a9dd971 완료. T02시작포인터 c62339c5eadfa61ff61083912801aa79de383072(고정baseline source).
 - T02 작업트리: provision-entra/set-entra-settings/entra-common/check-entra-env/verify-entra-registration 도구, infra/azure/entra.parameters.example.json, docs/entra-runbook.md, entra-provisioning.test.ts 구현. 아직실제SSO검증미완료라T02완료소스커밋없음.
 - 실제두Entra앱등록/Member acct/정확한redirect/최초Board.Admin·소유자윤일호만확인. prod client5fc11fd1-1c26-48b9-9cef-ea5785fffbb2, local395f9a9a-5abc-4534-8539-eb653bc956ff. tenant69c1e470-4528-435a-a1ae-de98e0aac738/adminoid e8222b20-96f4-4c25-a3af-1f40ebbbec56.
 - 각90일secret 만료2027-02-16 UTC/서로다른암호화키는Git무시 board/.deploy/entra-login.dpapi에사용자DPAPI로보관. 공개IDs/keyId/expiry는entra-resources.json. 기존LOCALAPPDATA/VibeBoard/azure-prod.dpapi불변. 비밀출력/argv/소스포함금지.

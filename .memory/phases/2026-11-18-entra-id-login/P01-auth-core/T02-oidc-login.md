@@ -102,7 +102,7 @@ Task: T02-oidc-login
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: b47774d
 
 ## Next Task
 P01-auth-core/T03-board-authorization.md. done/commit 후 phase/current 갱신.

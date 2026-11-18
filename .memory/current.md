@@ -7,9 +7,10 @@
 [P01 인증과 서버 권한 기반](./phases/2026-11-18-entra-id-login/P01-auth-core/phase.md)
 
 ## Active Task
-[P01-T02 실제 OIDC 흐름과 격리 issuer](./phases/2026-11-18-entra-id-login/P01-auth-core/T02-oidc-login.md)
+[P01-T03 글·미디어·관리자 서버 권한 전환](./phases/2026-11-18-entra-id-login/P01-auth-core/T03-board-authorization.md)
 
 ## Status
+- 사용자 추가 요청: 실제 서버 반영과 링크 제공까지 남은 Task를 순서대로 자동 연속 실행한다. 기반만 배포하지 않고 실제 Entra 로그인·게시판 권한·운영 검증까지 마친다. 실제 회사 로그인/MFA 단계는 자동 준비 후 사용자에게 안내한다.
 - P01-T01 완료(commit cc6cd9c). done1/6 (P01 1/3, P02 0/3). schema5/설정/principal/SQL opaque세션구현,서비스66개+API18개/typecheck/lint/diffcheck통과. 새schema는일회용SQL에서만검증했으며운영SQL/Entra/Azure/main은변경하지않았다.
 - [확정 결정](./decisions/2026-11-18-entra-id-login.md): 전체 게시판 로그인 필수, 동일 Entra tenant Member만, 이름표시/본인글 수정·삭제, 최초 관리자 윤일호만, legacy 보존·열람/관리자삭제, 로컬·운영 모두 실제 SSO.
 - tenant69c1e470-4528-435a-a1ae-de98e0aac738, 최초admin oid e8222b20-96f4-4c25-a3af-1f40ebbbec56. 이메일은표시/운영참고이며권한키는tid+oid와Board.Admin역할이다.
@@ -22,4 +23,4 @@
 - 이전 [웹에디터/이미지 계획](./plans/2026-11-16-rich-editor-images.md)은completed7/7로보존했다. board/docs/entra-runbook.md는이계획실행시생성할예정이다.
 
 ## Next Step (IMPORTANT)
-P01-T02 청사진을읽고openid-client버전/Node호환성확인후Code+PKCE/state/nonce/암호화된일회용flow와auth route,격리fakeissuer를구현한다. 새JWT서명/OIDC프로토콜검증은아직구현전이며validateEntraClaims만으로인증하지않는다. 기존게시판route권한전환은T03이며운영SQL5/mainpush는P02-T03, 실제Entra앱/설정은P02-T02에서만진행한다. 테스트는.env.local/운영연결을읽지않고사용자미커밋변경을보호한다.
+P01-T02 완료b47774d. 현재done2/6(P01 2/3),서비스73/API21/type/lint/build통과. 새openid-client6.9.0/서명검증/PKCE/암호화flow/auth HTTP/fakeissuer를구현했고운영의존성audit0. 기존게시판API는여전히옛계약이며아직운영배포하지않았다. 사용자요청대로자동연속실행해T03을읽고모든글/이미지/업로드/관리자서버권한과DTO·fixture를전환한다. 소유권/역할은실제세션SQL에서확인한다. Source스테이징은Task지정파일만,사용자next-env/3000/도구/SQLite보존. 운영변경/mainpush는최종Task경계까지금지한다.

@@ -7,7 +7,7 @@
 [P02 화면과 실제 Entra 운영 전환](./phases/2026-11-18-entra-id-login/P02-entra-delivery/phase.md)
 
 ## Active Task
-[P02-T01 로그인 화면과 계정 기반 작성·검증 도구](./phases/2026-11-18-entra-id-login/P02-entra-delivery/T01-identity-ui.md)
+[P02-T02 Entra 앱·역할·설정과 사전 로그인](./phases/2026-11-18-entra-id-login/P02-entra-delivery/T02-entra-provisioning.md)
 
 ## Status
 - 사용자 추가 요청: 실제 서버 반영과 링크 제공까지 남은 Task를 순서대로 자동 연속 실행한다. 기반만 배포하지 않고 실제 Entra 로그인·게시판 권한·운영 검증까지 마친다. 실제 회사 로그인/MFA 단계는 자동 준비 후 사용자에게 안내한다.
@@ -23,4 +23,4 @@
 - 이전 [웹에디터/이미지 계획](./plans/2026-11-16-rich-editor-images.md)은completed7/7로보존했다. board/docs/entra-runbook.md는이계획실행시생성할예정이다.
 
 ## Next Step (IMPORTANT)
-P01-T03 완료8bc9c2b. done3/6(P01completed3/3). 서비스77/API21/typecheck/lint/diffcheck통과. P02-T01 blueprint에따라 페이지보호/사용자메뉴/비밀번호없는계정UI·전체E2E/Linux패키지·실제세션검증도구를완성한다. 아직운영SQL/Entra/Azure/main변경없음. 사용자의 실제배포요청까지자동연속진행하며 사용자next-env/3000/도구보존.
+P02-T01 source a9dd971 완료. done4/6(P01 3/3, P02 1/3). test:all서비스77/API21/E2E28,타입/lint/build/workflow/diff,Linux패키지1개검증성공. T02 blueprint를읽고운영현황/권한을재확인한뒤별도prod/local Entra앱·역할·90일secret/DPAPI·local설정·실제SSO사전검증·schema5maintenance기준ZIP을준비한다. 아직운영SQL/Azure/Entra/main변경없음. 현재board.zip은커밋전검증용(HEAD9a39006기준metadata)이므로운영기준ZIP으로사용금지; 소스a9dd971이커밋된뒤정확한commit으로재빌드해야한다. 사용자3000/next-env/루트도구보존. 실제회사로그인/MFA만사람이수행하며자동연속배포요청유지.

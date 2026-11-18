@@ -1,6 +1,6 @@
 # Task: T03 비공개 운영 전환과 실제 SSO 인계
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 검증된 닫힌 패키지로 기존 공개 서비스를 전환하고 SQL5/main Actions/운영·로컬 실제 Entra 로그인과자체QA를마친뒤전체6/6완료를기록한다.
@@ -66,11 +66,11 @@ param([ValidateSet('Inspect','Maintenance','DeployBaseline','Enable','Verify')][
 - 모든필수검증과자기QA정리후Taskdone/지정커밋,phase3/3(총P013/3+P023/3=6/6),plancompleted/currentActive없음을동기화한다. source완료SHA와문서만의HEAD가다르면구분한다. README/docs/.memory완료커밋은현재workflowpaths예외로재배포하지않는다. 완료문서도정상main통합/push해보관하며force금지.
 
 ## Acceptance Criteria
-- [ ] SQL5/실제main Actions/healthSHA와AUTH_MODEentra·서로다른운영·로컬실제SSO/Admin이일치한다.
-- [ ] 미로그인콘텐츠비공개·계정권한·이미지·재시작·1280/390·logout과기존자료보존을확인했다.
-- [ ] ownQA글/공개이미지/삭제job정리·softdeletecharge보류·AppRunning·사용자변경/서버보호를기록했다.
-- [ ] secret회전/계정권한한계/SQL5maintenancebaseline/실제증거문서와전체completed6/6포인터가일치한다.
-- [ ] 아래전체검증성공,사람SSO/필요외부권한미완료나미정리ID를완료로표시하지않았다.
+- [x] SQL5/실제main Actions/healthSHA와AUTH_MODEentra·서로다른운영·로컬실제SSO/Admin이일치한다.
+- [x] 미로그인콘텐츠비공개·계정권한·이미지·재시작·1280/390·logout과기존자료보존을확인했다.
+- [x] ownQA글/공개이미지/삭제job정리·softdeletecharge보류·AppRunning·사용자변경/서버보호를기록했다.
+- [x] secret회전/계정권한한계/SQL5maintenancebaseline/실제증거문서와전체completed6/6포인터가일치한다.
+- [x] 아래전체검증성공,사람SSO/필요외부권한미완료나미정리ID를완료로표시하지않았다.
 
 ## Validation
 - `npm run test:all`, `npm run typecheck`, `npm run lint`, `npm run build`, `npm run verify:azure` — 최신변경포함전체통과.
@@ -95,9 +95,12 @@ Task: T03-private-release
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: 아래 지정 deploy(auth) 완료 커밋의 Git 이력 참조
 
 ## Next Task
 없음. 실제SSO/정리/문서검증후전체completed6/6.
+
+## Actual completion evidence
+실제source ba5e3bb223272c112b074bc0c1ec45567c419a63 / main Actions44262468755 success / SQL5 / AUTH_MODEentra. 두실제앱SSO·운영재시작·자체QA2글3이미지3세션·원본보존·잔여ID0·임시방화벽삭제 확인. 최종ZIP SHA256061330b00891785cd5d4cc9d685cf175defdba5f851e1a72d082fcf0174f6161. 상세검증과한계는 board/docs/entra-runbook.md 참조.

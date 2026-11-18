@@ -1,6 +1,6 @@
 # 이미지 에디터 운영 안내
 
-2026-11-16 준비. 기능 활성화와 실제 runtime Blob QA는 마지막 릴리스 Task에서 기록한다. 현재 운영 SQL 스키마3과 기존 앱을 유지한다.
+2026-11-16 이미지 기능 구축 기록이다. 아래 schema3/4·비회원 QA 결과는 당시 증거로 보존한다. 2026-11-18 Entra 전환은 [Entra 운영 안내](entra-runbook.md)를 우선한다. 현재 SQL5/AUTH_MODE=entra로 운영하며 main Actions와 실제 로컬·운영 앱의 이미지 QA를 완료했다.
 
 ## 자원과 인증
 
@@ -42,7 +42,7 @@ Validate/WhatIf/Verify는 자원을 변경하지 않는다. Apply는 소유 태�
 
 ## 게시·정리·용량
 
-이미지당5MiB, 최대5장/글, 원본 합계20MiB, 전체 추적 용량1GiB이다. JPEG/PNG/WebP의 magic·형식·정지 프레임을 확인해 EXIF/ICC/GPS 없이 최대1920px WebP로 재인코딩한다. 공개 URL은 앱 `/api/images/{id}`이며 SQL의 attached와 부모 글 존재를 확인한 뒤 스트리밍한다. draft/삭제 파일은404이다. 원본 이름과 업로드 토큰을 저장 문서/로그/URL/storage에 넣지 않는다.
+이미지당5MiB, 최대5장/글, 원본 합계20MiB, 전체 추적 용량1GiB이다. JPEG/PNG/WebP의 magic·형식·정지 프레임을 확인해 EXIF/ICC/GPS 없이 최대1920px WebP로 재인코딩한다. Entra 모드의 앱 `/api/images/{id}`는 먼저 로그인을 확인하고 SQL의 attached와 부모 글 존재를 검사한 뒤 스트리밍한다. 미로그인은401, 인증된 요청의 draft/삭제 파일은404이며 응답은 private, no-store다. HEAD와 ETag304도 인증을 먼저 검사한다. 원본 이름과 업로드 토큰을 저장 문서/로그/URL/storage에 넣지 않는다.
 
 저장 중 파일은 최대5MiB를 예약한다. 확정 후 실제 출력 크기로 조정하고, 삭제·실패·late completion의 파일은 원장과 outbox로 추적한다. 미연결 초안은24시간 후 정리한다. Blob 삭제 성공 뒤에도7일 soft-delete 기간에는 용량을 반환하지 않는다. 늦게 나타난 객체는 다시 durable outbox에 넣어 삭제를 확인한 시점부터7일을 보존한다. 반복되는 없는 파일 HEAD는 보존 기간을 연장하지 않는다. 실제 보존이 끝나고 head 부재를 확인한 뒤에만 용량을 반환한다.
 
@@ -57,9 +57,9 @@ npm run media:cleanup -- --apply --limit 100  # 정확한 운영 환경/권한 �
 
 ## 배포와 복구
 
-schema4 운영 전환과 migration·grants·제한 계정 검증을 완료했다. `.deploy/compat-schema4/board.zip`과 release.json의 commit/SHA256을 확인하고 해당 패키지를 최소 rollback 기준으로 사용한다. 복구 시 flag0에서 기존 문서 읽기/일반 글 서비스를 유지하며 `/api/health.version`을 manifest commit과 대조한다.
+현재 Entra 전환의 복구 기준은 `.deploy/entra-schema5-maintenance/board.zip`과 release.json이다. SQL5 전환 후에는 AUTH_MODE=maintenance로 콘텐츠를 닫고 해당 패키지의 commit/node24/SHA256 및 health를 확인한다. 이전 `.deploy/compat-schema4` 패키지는 역사 기록으로만 보존한다.
 
-릴리스 실패 시 DB를 되돌리지 않고 검증한 호환 ZIP을 배포해 flag0에서 읽기와 일반 글을 회복한다. schema4 이후 과거 schema3 ZIP, 역migration, 운영 데이터 초기화는 사용하지 않는다. rich 문서와 이미지 metadata/Blob을 보존한다. GitHub artifact는14일 후 만료하므로 baseline ZIP·manifest를 별도 안전 보관한다. `.deploy`는 Git에서 제외되며 비밀값을 포함하지 않는다.
+릴리스 실패 시 SQL5 점검 ZIP을 사용해 닫힌 상태에서 수정한다. schema3/4 ZIP, 역migration, 운영 데이터 초기화는 사용하지 않는다. rich 문서와 이미지 metadata/Blob을 보존한다. GitHub artifact는14일 후 만료하므로 baseline ZIP·manifest를 별도 안전 보관한다. `.deploy`는 Git에서 제외되며 패키지에는 비밀값을 포함하지 않는다.
 
 DB PITR이 필요하면 uploads/자동 cleanup을 멈추고 별도 DB로 복원·검증한다. 복원 시점의 attached asset metadata와 Blob 상태를 함께 대조한다. 7일 내 soft-deleted Blob은 해당 SQL asset의 정확한 경로만 operator Entra 권한으로 undelete하고, outbox/상태/용량을 확인한다. 복원 시점 이후 파일도 존재할 수 있으므로 기존 DB와 Blob을 보존한 채 원장을 조정하기 전 업로드를 재개하지 않는다. blob 없는 metadata만 복원하거나, 컨테이너 전체를 복원/삭제하는 방식은 피한다. 이 준비 작업에서 복원 DB나 미추적 QA Blob을 만들지 않았다.
 
@@ -83,7 +83,7 @@ DB PITR이 필요하면 uploads/자동 cleanup을 멈추고 별도 DB로 복원�
 
 ## 이미지 릴리스 검증
 
-`./scripts/verify-live-media.ps1 -Commit <실제 배포 SHA> -Disabled`로 schema4 flag0 일반 글 호환과 rich/session/upload 차단을 검사한 뒤, `./scripts/set-image-settings.ps1 -Mode Enabled`로 두 flag를 활성화한다. 이후 `./scripts/verify-live-media.ps1 -Commit <실제 배포 SHA>`를 실행한다. 관리자 비밀번호는 DPAPI에서 복호화해 stdin으로만 전달한다.
+이하 절차는 2026-11-16 비회원 이미지 릴리스의 과거 기록이다. Entra 운영에서는 비밀번호 기반 verify-live-media를 실행하지 않는다. 현재 실제 검증은 `verify-live-entra.ps1`의 Local/Production 프로필을 사용하며 총2글/3이미지/3업로드 세션 이내에서 현재 계정 소유 QA만 정리한다. 업로드 토큰은 계정과 로그인 세션에 연결되며 로그아웃하면 미완료 초안을 취소한다.
 
 검증은 임의 UUID 접두어의 글 최대2개와 세션 최대4개, 파일 예약 최대5개만 사용한다(flag0 검증 글1개는 별도). Chromium 파일 선택·서식·1280/390px·검색·수정·이미지 소유권·초안 비공개·Origin·형식/크기·실제 App Service 재시작·관리자 삭제/로그아웃을 검사한다. 자동 테스트는 격리 SQL/Azurite에서 같은 도구를 먼저 실행한다. 운영 브라우저 trace와 요청 본문/자격증명은 기록하지 않는다.
 
@@ -111,3 +111,5 @@ DB PITR이 필요하면 uploads/자동 cleanup을 멈추고 별도 DB로 복원�
 SQL 전환은07:40:58Z에 시작했다. 최초 Actions43825539447은 테스트용 FormData encoder 조기 취소 뒤 비동기 오류로 실패해 호환6d7b5d9 ZIP/flags0로 복구했다. DB는 되돌리지 않았으며 일반 글 작성·조회·정리/rich·session·upload503을 실제 확인했다. 헤더 거부 테스트를 wire bytes 입력으로 보완한 뒤 Linux 반복20회 및 최종 Actions 전체 회귀가 통과했다. 최종77fe827 배포에서는 flag0 health/version/일반 textarea/차단을 재확인했다. 일반 글 QA를 중복 생성하지 않고 총3개 이내를 지켰으며, flags1 후 실제 이미지 QA를 완료했다. 운영 기록에 암호·토큰·쿠키·원문 IP·원본 파일명·이미지 dump를 남기지 않았다.
 
 GitHub artifact 보존14일과 별개로 이 로컬 baseline을 안전한 별도 위치에도 보관한다. 기존 전환 전6d7b5d9 baseline은 `.deploy/pre-transition-schema4`에 남겨 두었으며, 정상 배포된77fe827 패키지를 우선 사용한다. 완료 문서 commit은 배포를 유발하지 않으며 실행 버전은 health를 기준으로 판단한다.
+
+2026-11-18 Entra 최종검증: 로컬1글/1이미지/1업로드세션, 운영1글/2이미지/2업로드세션을 사용했다. QA글과 자체삭제대기asset은 모두 정리됐으며3개 파일은7일softdelete로 사용용량을 유지한다. 기존글1개/attached이미지1개는 보존했다. 최종SQL은글1개/attached1/purged2/soft_deleted6이고 occupied=charged72,206bytes다. SQL5 복구기준ZIP SHA256은061330b00891785cd5d4cc9d685cf175defdba5f851e1a72d082fcf0174f6161, source ba5e3bb223272c112b074bc0c1ec45567c419a63이다.

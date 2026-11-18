@@ -1,10 +1,10 @@
 # 자유 게시판 Azure 운영 기록
 
-2026-11-16 최초 공개와 운영 검증 완료. 공개 주소: **https://app-vibe-board-prod-7b1417.azurewebsites.net**. 관리자 화면은 같은 주소의 `/admin`이다.
+2026-11-18 Entra 로그인 전환 완료. 운영 주소: **https://app-vibe-board-prod-7b1417.azurewebsites.net**. 관리자 화면은 같은 주소의 `/admin`이다.
 
 Azure 리소스 생성과 실제 검증을 완료했다. Bicep/Validate/WhatIf/Apply/Verify, migration2회, 제한된 SQL 계정의 CRUD/DDL 거부, 글0개/schema3 검증이 통과했다. GitHub 변수5개 등록 후 main 자동 배포가 성공했고 공개 환경의 CRUD·관리자·프록시 IP·제한·재시작·브라우저 검증도 통과했다.
 
-## 현재 이미지 에디터 릴리스
+## 이전 이미지 에디터 릴리스 — 2026-11-16
 
 2026-11-16 schema4로 전환하고 `77fe827b4ca69cfc9a82cf79688133a1e72ba920`을 운영에 배포했다. [성공 Actions43826431986](https://github.com/YIH151515/vibe_webapp/actions/runs/43826431986)의 전체93개 검사와 OIDC/ZIP/실제 health 검증이 통과했다. EDITOR_FEATURE_ENABLED=1, MEDIA_CLEANUP_ENABLED=1이며 private Blob `stvibeboardimg7b1417/board-images`는 런타임 system identity로 접근한다. 기존 B1 x1/SQLBasic2GB 등급은 유지했다.
 
@@ -72,14 +72,7 @@ SQL migration은 운영자 계정으로만 실행한다. 앱 `board_app`은 post
 
 운영 SQL 관리자·앱 비밀번호, 관리자 로그인 비밀번호, scrypt hash, 32byte session/rate 키를 난수로 생성했다. 원문은 `%LOCALAPPDATA%\VibeBoard\azure-prod.dpapi`에 현재 Windows 사용자 DPAPI로 암호화하고 디렉터리 ACL을 제한한다. 일시적인 배포 매개변수 파일은 같은 보호 폴더에서 만들고 finally에서 삭제한다. 비밀값을 명령 인수·Git·로그·artifact·일반 parameter 예시에 넣지 않는다.
 
-관리자 비밀번호가 필요하면 **본인 PC에서만** 다음을 실행해 클립보드로 가져온 뒤 `/admin`에 붙여 넣는다. 사용 후 클립보드를 비운다. 값을 채팅으로 전송할 필요가 없다.
-
-```powershell
-$boardProtected = (Get-Content "$env:LOCALAPPDATA/VibeBoard/azure-prod.dpapi" -Raw).Trim() | ConvertTo-SecureString
-$boardCredential = [Net.NetworkCredential]::new('', $boardProtected).Password | ConvertFrom-Json
-Set-Clipboard -Value $boardCredential.adminPassword
-Remove-Variable boardCredential,boardProtected
-```
+과거 비회원 관리자 비밀번호는 Entra 전환 후 로그인에 사용할 수 없다. 기존 DPAPI는 SQL 등 기존 설정 보존을 위해 유지한다. 회사 계정 인증 비밀은 별도 `board/.deploy/entra-login.dpapi`에 보관하며 [Entra 운영 안내](entra-runbook.md)의 등록·교체 절차를 사용한다.
 
 `board/.env.local`은 Git에서 제외되며 로컬 앱도 **같은 운영 데이터**를 변경한다. SQL_MIGRATION_*는 로컬 운영자 도구 전용이고 Azure에는 설정하지 않는다. APP_ORIGIN은 로컬 `http://127.0.0.1:3000`, Azure 실제 HTTPS 기본 호스트이다. 로컬 REQUEST_IP_MODE=local/LOCAL_CLIENT_IP는 실제 공개 IP, Azure는 app-service이다. DATABASE_PATH는 폐지됐으며 기존 값과 SQLite 파일은 사용하지 않고 보관한다. Next 환경파일의 scrypt `$`는 `\$`로 escape해야 한다. Azure 앱 설정의 값에는 escape를 넣지 않는다.
 
@@ -106,22 +99,22 @@ node scripts/configure-github.mjs
 | AZURE_WEBAPP_NAME | app-vibe-board-prod-7b1417 |
 | AZURE_RESOURCE_GROUP | rg-vibe-board-prod |
 
-수동 등록 위치는 Repository Settings → Secrets and variables → Actions → Variables이다. SQL/관리자 암호를 등록하지 않는다. 실제 OIDC subject는 `repo:YIH151515@355682187/vibe_webapp@1456296194:ref:refs/heads/main`, issuer는 GitHub, audience는 `api://AzureADTokenExchange`이다. 첫 실행에서 이름만 있는 subject와 불일치하여, GitHub API로 검증한 owner/repository ID를 포함하는 immutable subject로 수정했다. [GitHub OIDC 공식 문서](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims) 형식과 일치하며 이 저장소의 main만 허용한다. Website Contributor는 이 Web App 범위에만 부여한다. 장기 client secret이나 Entra 앱 등록은 만들지 않았다.
+수동 등록 위치는 Repository Settings → Secrets and variables → Actions → Variables이다. SQL/관리자 암호를 등록하지 않는다. 실제 OIDC subject는 `repo:YIH151515@355682187/vibe_webapp@1456296194:ref:refs/heads/main`, issuer는 GitHub, audience는 `api://AzureADTokenExchange`이다. 첫 실행에서 이름만 있는 subject와 불일치하여, GitHub API로 검증한 owner/repository ID를 포함하는 immutable subject로 수정했다. [GitHub OIDC 공식 문서](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims) 형식과 일치하며 이 저장소의 main만 허용한다. Website Contributor는 이 Web App 범위에만 부여한다. 배포용 OIDC identity에는 장기 client secret을 만들지 않았다. 사용자 로그인용 별도 Entra 앱은 Entra 운영 안내를 따른다.
 
 T02와 T03의 실제 설정·공개 배포 검증을 완료했다. 이후 README/docs/.memory만 갱신하는 완료 커밋은 재배포를 유발하지 않으므로 Git main의 HEAD와 위 실제 배포 commit은 다를 수 있다. 실행 버전은 `/api/health`로 확인한다.
 
-## 공개 검증과 운영 절차
+## Entra 전환과 운영 검증
 
-`npm run verify:live -- --url <실제HTTPS주소> --commit <배포SHA> --qa-writes`는 관리자 비밀번호를 stdin으로만 받는다. 동일 출발지의 정상 작성 윈도우가 비어 있을 때 자신이 만든 최대5개 UUID QA 글만 사용하고 모두 정리한다. 기존 글과 제한 카운터는 초기화하지 않는다. 검증 후 같은 출발지는 Retry-After 동안 글 작성이 제한될 수 있다. 일반 사용자가 활동하는 출발지에서 임의 반복 실행하지 않는다. 읽기 검증은 --qa-writes를 제외한다.
+이 문서의 비회원 공개 검증 결과와 schema4 버전은 과거 기록이다. 현재 실제 전환 상태는 [Entra 운영 안내](entra-runbook.md)를 우선한다. SQL5 migration·원본 보존·main Actions·실제 로컬/운영 앱 QA를 완료했고 AUTH_MODE=entra다. 실제 실행 source는 ba5e3bb223272c112b074bc0c1ec45567c419a63이며 [성공 Actions44262468755](https://github.com/YIH151515/vibe_webapp/actions/runs/44262468755)와 health가 일치한다.
 
-현재 Windows 사용자에게 보관한 DPAPI 비밀번호를 사용하려면 board에서 `./scripts/verify-live.ps1 -Commit <배포SHA>`를 실행한다. 이 helper는 Azure가 반환한 실제 호스트를 조회하고 비밀번호를 TS 도구의 stdin으로만 전달한다.
+현재 QA는 `./scripts/verify-live-entra.ps1 -Commit <실제40자리SHA> -Environment Local` 후 `-Environment Production` 순서다. 별도 브라우저에서 사람이 회사 계정 로그인과 MFA를 수행한다. 비밀번호 기반 verify-live/verify-live-media 도구는 Entra 운영에서 실행하지 않는다.
 
-검증은 health의 실제 버전, HTML/CSS, 작성·조회·수정·삭제·날짜 보존, 잘못된 비밀번호와 다른 Origin, 관리자 쿠키·동의·삭제·로그아웃 후 재사용 거부, 조작한 프록시 헤더에도 동일 SQL HMAC 제한, 실제 App Service 재시작 후 글·세션·제한 유지, Chromium1280/390px 화면을 확인한다. QA 정리에 실패하면 도구가 출력한 본인 QA id와 UUID 접두어를 확인한 후 해당 행만 관리자 경로로 정리한다.
+실제 QA 상한은 로컬1글/1이미지, 운영1글/2이미지, 총 업로드 세션3회다. 자체 UUID·현재 계정 소유 데이터만 정리하고 기존 글·이미지·제한 카운터는 변경하지 않는다. 실패 후 남은 QA ID가 있으면 정리 완료 전 Task를 완료 처리하지 않는다. 실제 SSO 브라우저의 trace/HAR/쿠키/콜백 쿼리를 기록하지 않는다.
 
-배포 상태는 `node scripts/github-release.mjs <배포SHA>`로 확인한다. 실행에 실패한 경우에만 --failure로 실패 단계 진단을 확인하며 설정 전체·쿠키·요청 body·암호는 로그에 출력하지 않는다. 서버 로그 확인 명령은 `az webapp log tail --resource-group rg-vibe-board-prod --name app-vibe-board-prod-7b1417`이다.
+배포 상태는 `node scripts/github-release.mjs <배포SHA>`로 확인한다. 실행에 실패한 경우에만 --failure로 실패 단계 진단을 확인하며 설정 전체·쿠키·요청 body·암호는 로그에 출력하지 않는다. callback/query·요청 본문·쿠키가 노출될 수 있는 원시 HTTP 로그를 켜지 않는다. HTTP logs/detailed errors/request tracing은 false로 확인했으며 관측 설정을 추가할 때 마스킹부터 검증한다.
 
 백업은 Azure SQL Basic의 PITR7일·Local 중복 저장을 실제 확인했다. 복원은 Azure Portal의 해당 DB → Restore에서 필요한 시점을 선택하고 **별도 DB 이름**으로 실행한다. 복원 대상/추가 비용을 검토한 뒤 별도 DB로 검증하고 운영 연결을 전환한다. 기존 운영 DB를 지우거나 이번 구축 검증에서 불필요한 복원 DB를 만들지 않는다.
 
-롤백은 GitHub Actions의 이전 성공한 board-release artifact와 release.json을 내려받아 SHA256을 검사하고, 이전 board.zip을 같은 앱에 재배포한 뒤 APP_VERSION을 해당 artifact commit으로 맞추고 health를 확인한다. 앱만 되돌리며 additive SQL schema와 운영 DB는 유지한다. 이전 ZIP이 없는 첫 릴리스에는 롤백 대상이 없다. 문서 커밋의 HEAD와 실제 실행 중인 artifact commit은 다를 수 있다.
+SQL5 전환 후 복구는 `AUTH_MODE=maintenance`에서 검증한 `.deploy/entra-schema5-maintenance/board.zip`과 release.json을 사용한다. manifest의 commit/node24/SHA256과 실제 ZIP을 대조하고 APP_VERSION 및 health를 확인한다. 과거 schema3/4 또는 익명 접근 ZIP으로 복구하지 않는다. DB 역migration이나 운영 자료 초기화 없이 닫힌 상태에서 수정한다. 최종 main Actions 성공 뒤 그 실제 패키지로 기준 ZIP을 갱신하고 준비 패키지도 보존한다.
 
 현재 비용은 Azure Portal → 구독 DEX → Cost Management → Cost analysis에서 RG rg-vibe-board-prod 필터로 확인한다. 월50,000원은 목표이며 강제 지출 차단이 아니다. SKU/인스턴스/백업 변경 전 비용을 다시 확인한다.

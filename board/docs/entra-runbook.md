@@ -50,12 +50,12 @@ scripts/provision-entra.ps1 -Mode Inspect|Apply|Verify는 기록된 ID와 소유
 scripts/set-entra-settings.ps1 -Mode Maintenance|Enabled|Verify는 ARM에서 기존 dictionary를 읽고
 인증 관련 5개 key만 merge한다. SQL·관리자·rate·미디어 설정은 그대로 두고 read-back을 검증한다.
 로컬 .env.local에는 로컬 secret만 쓰며 Next dotenv roundtrip은 성공 여부만 출력한다.
-현재는 양쪽 AUTH_MODE=maintenance다. 로컬 APP_ORIGIN=3000과 기존 사용자 서버는 유지한다.
+최종 운영과 로컬 AUTH_MODE=entra다. 전환 준비 때는 양쪽 maintenance를 사용했다. 로컬 APP_ORIGIN=3000과 기존 사용자 서버는 유지한다.
 3200 실제 앱 검증 시 별도 프로세스에서 origin을 명시한다.
 Enabled는 SQL5 호환 기준 ZIP 해시와 실제 health/SHA gate가 있어야 실행된다.
 기존 provision-azure.ps1 -Mode Apply는 인증 설정이 존재하면 전체 덮어쓰기를 중단한다.
 
-## 현재 검증과 전환 경계
+## T02 준비 당시 검증과 전환 경계
 
 - 운영 health는 기존 77fe827b4ca69cfc9a82cf79688133a1e72ba920으로 정상이다.
 - 수동 읽기에서 SQL schema4, 글 1개, 이미지 6개를 확인했다.
@@ -122,3 +122,57 @@ release-entra.ps1은검증된schema5기준ZIP으로먼저콘텐츠를닫고버�
 실제로그인후Entra가추가한0역할기본접근할당은관리자권한이아니므로보존한다. Verify는비0역할중Board.Admin이확정윤일호User에게만있는지검사한다. [공식appRoleAssignment정의](https://learn.microsoft.com/en-us/graph/api/resources/approleassignment?view=graph-rest-1.0)에따르며추가관리자/그룹/다른역할은계속거부한다.
 
 실제QA도구는별도의loopback제어BrowserServer를사용하고자신이시작한창만앞으로표시한다. cookies/WS제어주소/token은출력·저장하지않으며브라우저와자체3200서버를정리한다. 사용자3000서버는종료하지않는다.
+
+## 운영 전환 과정 기록
+
+2026-11-18 07:13:58 UTC부터전환을시작해schema5호환maintenance기준ZIP을운영에배포했다. /login200, 보호root/API503으로닫힌상태를확인했다. 기존SQL4때문에health는503이며자료/스키마쓰기전이다.
+
+운영자TDS출발지가118.235.12.2로변경돼DB접속이차단됐다. 새IP영구허용은자동승인검토에서구체적인권한승인미확인을이유로거부됐다. 이후 사용자가 단일IP 최대60분 임시허용을 명시 승인했다. 고유 임시 규칙으로 접속해 SQL5 migration2회·제한계정권한·원본글1개/첨부1개·날짜·이미지회계 보존을 확인했다. 임시 규칙은 작업 종료 시 삭제하고 실제 삭제를 확인한다.
+
+준비소스be048b6fe282f3b592b750f1874f7efbc4a50ea7은featurebranch에만게시했고main은변경하지않았다. feature수동검증Actions44258216715는success로완료됐다(test:all/type/lint/workflow/Linux패키지). deploy는main조건으로skipped이며실제main배포성공을대체하지않는다.
+
+## 권한 변경과 세션 취소 인계
+
+일반 사용자는 이 tenant의 Member여야 한다. 이메일 도메인, 표시 이름, Guest 초대 여부만으로 권한을 부여하지 않는다. 관리자 변경은 Entra Enterprise applications에서 위 환경별 service principal의 Users and groups에 정확한 사용자 object ID와 Board.Admin을 할당하거나 해당 할당을 회수한다. 로컬과 운영의 할당은 별도다. 현재 Verify는 최초 관리자 한 명만 허용하는 고정 정책이므로 승인된 관리자 변경 시 공개 설정과 검증 정책도 함께 갱신한다.
+
+역할·Member 상태·계정 사용 중지의 변경은 이미 발급된 SQL 세션에 실시간 반영되지 않는다. 해당 사용자는 재로그인하거나 최대1시간의 만료를 기다린다. 긴급 회수는 운영자가 정확한 app_origin/client_id/tenant_id/object_id와 아직 유효한 세션만 조회해 대상을 검토하고 `src/lib/server/auth-session.ts`의 `revokeAppSession(pool, principal)`을 호출한다. principal은 조회한 tenantId/objectId/displayName/isAdmin/sessionHash/expiresAt으로 메모리에서 구성하며 세션 해시나 사용자 정보를 로그·파일·명령 인수로 내보내지 않는다. 운영 대상은 운영 APP_ORIGIN/client 자격증명을 프로세스에만 주입하고 로컬 .env의 앱과 혼동하지 않는다.
+
+이 함수는 capacity→auth→upload→asset 잠금 순서의 트랜잭션에서 세션을 취소하고 해당 세션의 active 업로드와 draft 파일만 삭제 대기열로 보낸다. 단순 auth_sessions UPDATE로 대체하거나 다른 계정의 세션을 일괄 초기화하지 않는다. 취소 후 기존 쿠키의 API401, 해당 세션 draft 취소, 게시된 첨부 보존을 확인한다. 자체 QA의 logout과 재사용401은 같은 취소 함수를 검증한다.
+
+## 비밀 교체와 관측 설정
+
+90일 만료 전에 각 앱별로 새 client secret을 발급하고 새 값을 해당 환경 DPAPI와 ARM 또는 로컬 설정에 안전하게 전달한다. 기존 dictionary를 merge해 SQL/Blob/rate 설정을 보존한다. 새 설정의 실제 SSO와 health를 확인한 뒤 해당 앱의 이전 keyId만 제거한다. 두 앱의 secret을 서로 복사하지 않으며 채팅·Git·일반 JSON 파일로 전달하지 않는다. 현재 provision 도구는 유효한 기존 secret을 재사용하므로 만료 전 회전은 명시적 운영 절차로 수행한다.
+
+AUTH_ENCRYPTION_KEY 교체 시 진행 중인 최대10분 로그인 flow는 재시도해야 한다. 기존 SQL 로그인 세션은 별도 취소가 필요하다. 운영 callback의 code/state/query, token/claim/cookie, 요청 본문을 로그에 남기지 않는다. App Service HTTP 로그·detailed errors·request tracing은 비활성 상태를 유지하고 APM이나 프록시를 추가할 때 callback/query 마스킹을 먼저 검증한다. 실제 로그인 브라우저는 trace/HAR/스크린샷을 수집하지 않는다.
+
+로컬도 운영 SQL/Blob을 공유한다. 자동 테스트는 격리 DB/Azurite/가짜 issuer만 사용하고 실제 .env.local을 로드하지 않는다. 점검 복구에는 SQL5 호환 기준 ZIP만 사용하며 익명 서비스 재개나 schema4 역전환으로 인증 장애를 해결하지 않는다.
+
+로컬 실제 앱 QA는 ba5e3bb223272c112b074bc0c1ec45567c419a63 기준으로 통과했다. 최초 세 번은 로컬 EDITOR_FEATURE_ENABLED=0 때문에 서식 버튼을 찾지 못했으며 글/파일/업로드 세션 생성은0이었다. wrapper가 자신이 시작한3200 child환경에서만 에디터를 켜도록 수정했다. 사용자 .env.local의 미디어 flag와3000 서버는 보존했다.
+
+성공한 로컬 QA는 글1개/이미지1개/업로드 세션1회다. 실제Member/Admin 세션·글서식·이미지인증/ETag/HEAD·수정/날짜·1280/390 화면·관리자동의·자체삭제·logout이전쿠키401을 확인했다. 잔여QA글/삭제대기asset ID는0이고 Blob은7일softdelete 동안 사용 용량을 유지한다. 로컬 restart callback은 no-op이며 실제 AppService 재시작 검증은 운영 프로필에서 별도로 수행한다.
+
+## 최종 운영 결과 — 2026-11-18
+
+| 항목 | 확인 결과 |
+| --- | --- |
+| 운영 URL | https://app-vibe-board-prod-7b1417.azurewebsites.net |
+| 실제 source | ba5e3bb223272c112b074bc0c1ec45567c419a63 |
+| main Actions | [44262468755 success](https://github.com/YIH151515/vibe_webapp/actions/runs/44262468755) — verify와 deploy 모두 성공 |
+| 실행 상태 | Running / HTTPS only / SQL5 / AUTH_MODE=entra / health200 status ok 및 version 일치 |
+| 익명 접근 | login200, 글·설정·이미지 API401. 보호 페이지는 로그인 화면으로 이동 |
+| 실제 계정 | 로컬·운영 별도 앱에서 Member/최초 관리자 OID/Board.Admin 확인 |
+| 실제 QA | 로컬1글1이미지1업로드세션 + 운영1글2이미지2업로드세션. QA글17/18 삭제, 잔여 자체post/asset ID0 |
+| 브라우저·미디어 | 서식·파일선택·검색·수정/작성일·1280/390·HEAD/ETag인증·Blob직접익명차단·관리자동의/삭제·logout재사용401 |
+| 실제 재시작 | 운영 App Service 재시작 후 동일 앱세션·문서·이미지 bytes 유지 |
+| 원본 보존 | 기존글1/기존attached1, 원문·해시·날짜·이미지참조 메모리비교 통과. 기존소유자는 NULL 유지 |
+| 최종 SQL 회계 | 글1(legacy1)/QA0, attached1/purged2/soft_deleted6, occupied=charged72,206bytes |
+| 복구 ZIP | .deploy/entra-schema5-maintenance/board.zip + release.json, node24 |
+| 최종 ZIP SHA256 | 061330b00891785cd5d4cc9d685cf175defdba5f851e1a72d082fcf0174f6161 |
+| 준비 ZIP 보존 | 같은 디렉터리 prepared-c62339c5에 원본 준비패키지 보존 |
+| 임시 방화벽 | 승인된118.235.12.2 단일IP 규칙 board-entra-temp-6bb6cc99ca144a49a2e235724fb68df3은 종료signal 후 삭제·ARM404 확인. 60분 이내 종료 |
+| 관측 보호 | HTTP logs/detailed errors/request tracing=false, 실제SSO trace/HAR/쿠키/claim/콜백query 기록 없음 |
+| 사용자 작업 보호 | 사용자3000 PID29808 유지, 자체3200 종료. next-env 두dev타입경로/루트도구/기존DPAPI/SQLite·Docker pad 보존 |
+
+자동검사는 최신 main에서 서비스/API/E2E 전체와 typecheck/lint/workflow/Linux ZIP을 통과했다. 실제 일반Member·Guest·다른tenant·타owner 계정은 추가로 로그인하지 않았으며, 해당 권한과 악성 OIDC 입력은 격리SQL/가짜서명issuer 테스트로 검증했다. 긴 표시이름256자는 합성화면으로 검증했고 실제 계정 이름을 변경하지 않았다.
+
+삭제된 QA 이미지는 즉시 접근이 차단되지만 Blob soft delete7일과 용량보류가 남는다. 이를 물리 완전삭제로 해석하지 않는다. 실제 배포source와 뒤따르는 docs/.memory 완료커밋의 SHA는 다를 수 있으며 완료문서 변경은 배포를 다시 실행하지 않는다.

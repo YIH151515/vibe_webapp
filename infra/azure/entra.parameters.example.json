@@ -1,0 +1,11 @@
+{
+  "tenantId": "69c1e470-4528-435a-a1ae-de98e0aac738",
+  "subscriptionId": "7b1417d8-833d-4ba9-a5cd-d27c91a28b83",
+  "administratorObjectId": "e8222b20-96f4-4c25-a3af-1f40ebbbec56",
+  "role": {"id": "b804ef25-9734-4e12-87e3-b8ea76c73353", "value": "Board.Admin"},
+  "clients": {
+    "prod": {"displayName": "vibe-board-entra-prod", "redirectUris": ["https://app-vibe-board-prod-7b1417.azurewebsites.net/api/auth/callback"]},
+    "local": {"displayName": "vibe-board-entra-local", "redirectUris": ["http://127.0.0.1:3000/api/auth/callback", "http://127.0.0.1:3200/api/auth/callback"]}
+  },
+  "passwordLifetimeDays": 90
+}

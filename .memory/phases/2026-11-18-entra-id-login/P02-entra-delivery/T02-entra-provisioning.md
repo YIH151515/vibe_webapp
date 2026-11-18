@@ -1,6 +1,6 @@
 # Task: T02 운영·로컬 Entra 앱과 안전한 전환 준비
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 별도 운영/로컬 앱 등록·Member claim·최초관리자역할·정확한redirect·비밀설정을 준비하고 실제 사전 SSO/닫힌 schema5 복구 ZIP을 확보한다. 운영 SQL5와main배포는아직수행하지않는다.
@@ -67,7 +67,7 @@ verifyEntraRegistration(config:EntraConfig,options:{port:3200;timeoutMs:number})
 
 ## Acceptance Criteria
 - [x] 운영/로컬별도앱·정확한redirect/acct/Board.Admin과최초윤일호할당,비밀분리/보관/설정보존을실제확인했다.
-- [ ] 사전실제OIDC에서올바른Member/Admin을확인했거나미완료사람단계/권한을명확히보고하고done을보류했다.
+- [x] 사전실제OIDC에서올바른Member/Admin을확인했거나미완료사람단계/권한을명확히보고하고done을보류했다.
 - [x] 운영SQL4연결읽기/실제글개수및원장확인, schema5maintenance복구ZIP/해시준비완료.
 - [x] 운영migration/mainpush/타자원권한확대없고회귀/패키지검사통과.
 
@@ -93,8 +93,8 @@ Task: T02-entra-provisioning
 
 ## Progress
 - [x] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 검증 통과
+- commit: this source commit
 
 ## Next Task
 P02-entra-delivery/T03-private-release.md. 운영SQL5전환과mainpush는마지막Task에서만허용.
@@ -111,3 +111,9 @@ P02-entra-delivery/T03-private-release.md. 운영SQL5전환과mainpush는마지�
 - 실제 SQL없는preflight3200브라우저를열어사용자에게MFA직접진행을안내하고비동기질문했다. 10분대기후실제Member/Admin결과없이종료되어완료로표시하지않는다. 요청이나token/claims/trace/HAR를저장하지않았다. 3200/브라우저는도구가정리했고다른서버는종료하지않았다.
 - 신규코드/스크립트/문서는작업트리에보존(아직T02완료커밋없음). 다음사용자준비시에preflight재시도, true booleans실증거가확인된뒤에만완료커밋/포인터전진. 운영SQL5/mainpush/새버전배포미실행.
 - 추가발견: 현재shell PATH에gh없음. 최종Task에서Git로그인/GCM을활용한안전한REST또는공식portable CLI를준비하며사용자에게PAT를채팅으로요구하지않는다.
+
+## 실제 SSO 최종 확인
+- 창이보이지않는다는사용자응답뒤기본브라우저및loopback직접링크로재시도했다. 실행73649가exit0으로종료했고 tenantMatches=true/member=true/admin=true를반환했다. checks는real-code-pkce-nonce-signature/tenant-member/initial-administrator-oid/Board.Admin이다. SQL없는실제Entra로그인이므로T02사전SSO완료조건을충족했다. SQL앱로그인/운영QA는다음Task에서별도검증한다.
+- 핵심: provision-entra.ps1은ID기반멱등처리로별도앱과role을관리하고, set-entra-settings.ps1은기존dictionary에서auth5key만merge한다. verify-entra-registration.ts는실제Code+PKCE+서명후Member/Admin을판정한다.
+- 알아야할점: secrets는DPAPI/로컬env/ARM에만있고90일만료다. defaultmaintenance·schema5닫힌기준ZIP을유지하고기존글의owner를추정하지않는다. 실제회사MFA는사람이직접했다.
+- 함께처리한인접사항: 현재운영자단일IP방화벽허용/기존whole-template Apply의auth덮어쓰기방지/Nextdotenv라운드트립을완성했다. 범위밖추가변경없음. gh미설치의최종배포준비는다음Task에서처리한다.

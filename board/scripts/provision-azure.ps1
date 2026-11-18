@@ -66,6 +66,10 @@ foreach ($key in @('sqlAdminPassword','sqlAppPassword','adminPasswordHash','sess
 if ($exists) {
   $apps = Invoke-BoardAz @('webapp','list','--resource-group',$rg,'--query','[].name','-o','json') | ConvertFrom-Json
   if ($names.webApp -in $apps) {
+    if ($Mode -eq 'Apply') {
+      $existingKeys=Invoke-BoardAz @('webapp','config','appsettings','list','--name',$names.webApp,'--resource-group',$rg,'--query','[].name','-o','json') | ConvertFrom-Json
+      if ('AUTH_MODE' -in $existingKeys -or 'ENTRA_CLIENT_ID' -in $existingKeys) { throw 'Entra settings exist. Whole-template Apply is blocked; use set-entra-settings.ps1 and plan infrastructure preservation separately.' }
+    }
     $version = Invoke-BoardAz @('webapp','config','appsettings','list','--name',$names.webApp,'--resource-group',$rg,'--query',"[?name=='APP_VERSION'].value | [0]",'-o','tsv')
     if ($version) { $parameters.appVersion = @{value=$version.Trim()} }
     $imageSettings=Invoke-BoardAz @('webapp','config','appsettings','list','--name',$names.webApp,'--resource-group',$rg,'--query',"[?starts_with(name,'STORAGE_') || name=='EDITOR_FEATURE_ENABLED' || name=='MEDIA_CLEANUP_ENABLED']",'-o','json') | ConvertFrom-Json

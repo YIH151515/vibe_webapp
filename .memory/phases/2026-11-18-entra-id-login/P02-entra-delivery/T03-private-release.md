@@ -97,7 +97,7 @@ Task: T03-private-release
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: 아래 지정 deploy(auth) 완료 커밋의 Git 이력 참조
+- commit: ef2d0dccc6e53d8bd4d0b9aa1a5073cc7230e989
 
 ## Next Task
 없음. 실제SSO/정리/문서검증후전체completed6/6.

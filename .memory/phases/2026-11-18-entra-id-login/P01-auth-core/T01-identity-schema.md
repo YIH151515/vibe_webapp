@@ -108,7 +108,7 @@ Task: T01-identity-schema
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: cc6cd9c
 
 ## Next Task
 P01-auth-core/T02-oidc-login.md. Task done/지정커밋 후 phase/current를 갱신한다.

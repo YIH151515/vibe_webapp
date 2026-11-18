@@ -1,27 +1,25 @@
 # Current Context
 
 ## Active Plan
-[웹 에디터와 이미지 업로드 — completed](./plans/2026-11-16-rich-editor-images.md)
+[자유 게시판 Entra ID 로그인](./plans/2026-11-18-entra-id-login.md)
 
 ## Active Phase
-없음 — P01 completed4/4, P02 completed3/3.
+[P01 인증과 서버 권한 기반](./phases/2026-11-18-entra-id-login/P01-auth-core/phase.md)
 
 ## Active Task
-없음 — 전체7/7 완료.
+[P01-T02 실제 OIDC 흐름과 격리 issuer](./phases/2026-11-18-entra-id-login/P01-auth-core/T02-oidc-login.md)
 
 ## Status
-- completed (2026-11-16). 사용자 요청대로 오픈소스 에디터·이미지 업로드 완성과 실제 Azure 운영 반영을 모두 완료했다.
-- 운영 URL: https://app-vibe-board-prod-7b1417.azurewebsites.net
-- 실제 실행 commit77fe827b4ca69cfc9a82cf79688133a1e72ba920. [Actions43826431986](https://github.com/YIH151515/vibe_webapp/actions/runs/43826431986) verify/artifact/OIDC/deploy/health 모두 success. 완료 문서 Task commit a264b3f와 이후 포인터 문서는 재배포하지 않는다.
-- SQL4 migration2회/제한 앱 권한 검증 완료. EDITOR_FEATURE_ENABLED=1, MEDIA_CLEANUP_ENABLED=1, App Running/health200 statusok 및 version 일치.
-- 전체93개(서비스54/API18/E2E21), typecheck/lint/build/Linux 독립 ZIP/sharp/SDK/CSS/workflow 검사 통과. Node FormData 테스트 입력 보완 후 Linux20회 반복/최종CI 전체 성공.
-- 실제 MI 이미지 업로드·private Blob 직접 익명 거부·초안404·ETag304·소유권/Origin/비밀번호/token/MIME/크기와 PC1280/390px·서식·검색·수정/추가/제거·작성일·실제 재시작 후 bytes 동일·관리자 삭제/로그아웃 검증 완료.
-- 07:57:16Z 집계: own QA글0/전체글0/삭제jobs0. soft_deleted3개396bytes는7일 보존/용량 보류, prewrite 실패 purged2개0bytes. occupied_bytes=SUM(charge_bytes)=396. 실제 Azure deleted marker 확인. 파일을 전부 즉시 물리 삭제한 것은 아니다.
-- 최종 schema4 baseline: board/.deploy/compat-schema4/board.zip + release.json. source77fe827, SHA25626e7d087d6497b758d5052b06ccd409815602e80c4043a71fb98ddc2b9421d7f. 실제 Actions artifact와 대조. 이전6d7b5d9 전환 baseline은 .deploy/pre-transition-schema4 보존. SQL 역migration/schema3 ZIP 복구 금지.
-- DEX구독7b1417d8-833d-4ba9-a5cd-d27c91a28b83 / rg-vibe-board-prod / B1 Linux x1 / SQLBasic2GB 유지. stvibeboardimg7b1417/board-images private HotLRS/TLS1.2/SharedKeyOff/soft-delete7일. 앱systemID/operator의 container scope data contributor 확인.
-- 운영/로컬 SQL·Blob 공유, 로컬 기본flags0. 자동 테스트는 전용 loopback SQL/Azurite 이중 guard이며 .env.local을 읽지 않는다. 암호·token·cookie·원문IP/파일명/이미지dump 로그·stage 제외.
-- 사용자 board/next-env.d.ts dev 경로 변경/루트 도구/AGENTS/zip/기존 SQLite를 보존했고 stage하지 않았다. 사용자3000와 Docker pad 서버 보존. 소유 테스트 컨테이너는 정리 완료.
-- 운영·비용·백업/soft delete·복구/cleanup·검증 도구: [이미지 운영 안내](../board/docs/images-runbook.md), [Azure 운영 기록](../board/docs/azure-runbook.md).
+- P01-T01 완료(commit cc6cd9c). done1/6 (P01 1/3, P02 0/3). schema5/설정/principal/SQL opaque세션구현,서비스66개+API18개/typecheck/lint/diffcheck통과. 새schema는일회용SQL에서만검증했으며운영SQL/Entra/Azure/main은변경하지않았다.
+- [확정 결정](./decisions/2026-11-18-entra-id-login.md): 전체 게시판 로그인 필수, 동일 Entra tenant Member만, 이름표시/본인글 수정·삭제, 최초 관리자 윤일호만, legacy 보존·열람/관리자삭제, 로컬·운영 모두 실제 SSO.
+- tenant69c1e470-4528-435a-a1ae-de98e0aac738, 최초admin oid e8222b20-96f4-4c25-a3af-1f40ebbbec56. 이메일은표시/운영참고이며권한키는tid+oid와Board.Admin역할이다.
+- Task순서: SQL5/session → OIDC/fakeissuer → 모든서버소유권 → UI/전체검증 → 별도Entra앱/사전SSO → 닫힌운영전환/실제SSO.
+- AUTH_MODEmaintenance(default)|entra만계획. SQL5 호환 maintenance ZIP으로 콘텐츠를먼저닫고 migration/grants/실제Actions 후entra로전환한다. 익명fallback/schema4 ZIP/역migration/데이터초기화금지.
+- 현재기록상운영은77fe827/schema4/DEX/B1x1/SQLBasic2GB/기존privateBlob. 실제현재version/글개수는실행에서재확인한다. 인터뷰의운영SQL글개수조회실패로현재0개라고가정할수없다.
+- 운영·로컬 DB/Blob공유. 자동테스트는.env.local/실제Entra/운영endpoint를읽지않고전용loopback SQL+Azurite+fakeOIDC 이중/추가guard를사용한다. 실제로컬SSO QA는새3200으로기존사용자3000을보존한다.
+- 실제사람의회사SSO/MFA/필요Entra권한은자동우회불가. 자동준비/검토할산출물을완성한뒤정확한브라우저/관리자단계만안내한다. 실제검증이나자체QA정리가안됐으면완료로표시하지않는다.
+- 현재feature/entra-id-login은origin/main96edfc50b2dae16b195d1b219d0fcd335c62f55d에서생성했다. main원격push없음. 사용자board/next-env.d.ts dev경로·루트도구/AGENTS/zip/SQLite·3000·Dockerpad 보존/무관stage금지.
+- 이전 [웹에디터/이미지 계획](./plans/2026-11-16-rich-editor-images.md)은completed7/7로보존했다. board/docs/entra-runbook.md는이계획실행시생성할예정이다.
 
 ## Next Step (IMPORTANT)
-남은 Task 없음. 게시판에서 새 이야기 쓰기로 에디터와 이미지를 사용한다. 새 기능은 AGENTS.md의 인터뷰→계획→순차 실행 절차로 시작한다. 운영 복구는 위 schema4 baseline/해시와 flags0을 사용하며 데이터/제한 카운터를 초기화하지 않는다.
+P01-T02 청사진을읽고openid-client버전/Node호환성확인후Code+PKCE/state/nonce/암호화된일회용flow와auth route,격리fakeissuer를구현한다. 새JWT서명/OIDC프로토콜검증은아직구현전이며validateEntraClaims만으로인증하지않는다. 기존게시판route권한전환은T03이며운영SQL5/mainpush는P02-T03, 실제Entra앱/설정은P02-T02에서만진행한다. 테스트는.env.local/운영연결을읽지않고사용자미커밋변경을보호한다.

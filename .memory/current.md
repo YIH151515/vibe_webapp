@@ -10,17 +10,18 @@
 [P02-T02 Entra 앱·역할·설정과 사전 로그인](./phases/2026-11-18-entra-id-login/P02-entra-delivery/T02-entra-provisioning.md)
 
 ## Status
-- 사용자 추가 요청: 실제 서버 반영과 링크 제공까지 남은 Task를 순서대로 자동 연속 실행한다. 기반만 배포하지 않고 실제 Entra 로그인·게시판 권한·운영 검증까지 마친다. 실제 회사 로그인/MFA 단계는 자동 준비 후 사용자에게 안내한다.
-- P01-T01 완료(commit cc6cd9c). done1/6 (P01 1/3, P02 0/3). schema5/설정/principal/SQL opaque세션구현,서비스66개+API18개/typecheck/lint/diffcheck통과. 새schema는일회용SQL에서만검증했으며운영SQL/Entra/Azure/main은변경하지않았다.
-- [확정 결정](./decisions/2026-11-18-entra-id-login.md): 전체 게시판 로그인 필수, 동일 Entra tenant Member만, 이름표시/본인글 수정·삭제, 최초 관리자 윤일호만, legacy 보존·열람/관리자삭제, 로컬·운영 모두 실제 SSO.
-- tenant69c1e470-4528-435a-a1ae-de98e0aac738, 최초admin oid e8222b20-96f4-4c25-a3af-1f40ebbbec56. 이메일은표시/운영참고이며권한키는tid+oid와Board.Admin역할이다.
-- Task순서: SQL5/session → OIDC/fakeissuer → 모든서버소유권 → UI/전체검증 → 별도Entra앱/사전SSO → 닫힌운영전환/실제SSO.
-- AUTH_MODEmaintenance(default)|entra만계획. SQL5 호환 maintenance ZIP으로 콘텐츠를먼저닫고 migration/grants/실제Actions 후entra로전환한다. 익명fallback/schema4 ZIP/역migration/데이터초기화금지.
-- 현재기록상운영은77fe827/schema4/DEX/B1x1/SQLBasic2GB/기존privateBlob. 실제현재version/글개수는실행에서재확인한다. 인터뷰의운영SQL글개수조회실패로현재0개라고가정할수없다.
-- 운영·로컬 DB/Blob공유. 자동테스트는.env.local/실제Entra/운영endpoint를읽지않고전용loopback SQL+Azurite+fakeOIDC 이중/추가guard를사용한다. 실제로컬SSO QA는새3200으로기존사용자3000을보존한다.
-- 실제사람의회사SSO/MFA/필요Entra권한은자동우회불가. 자동준비/검토할산출물을완성한뒤정확한브라우저/관리자단계만안내한다. 실제검증이나자체QA정리가안됐으면완료로표시하지않는다.
-- 현재feature/entra-id-login은origin/main96edfc50b2dae16b195d1b219d0fcd335c62f55d에서생성했다. main원격push없음. 사용자board/next-env.d.ts dev경로·루트도구/AGENTS/zip/SQLite·3000·Dockerpad 보존/무관stage금지.
-- 이전 [웹에디터/이미지 계획](./plans/2026-11-16-rich-editor-images.md)은completed7/7로보존했다. board/docs/entra-runbook.md는이계획실행시생성할예정이다.
+- 사용자 요청: 실제 서버 반영과 링크 제공까지 자동 연속 실행. 새버전 운영배포는 아직이며 실제회사로그인/MFA가 필수로 남았다.
+- done4/6. P01완료3/3: SQL5/session cc6cd9c, OIDC b47774d, 서버권한8bc9c2b. P02-T01 UI/페이지보호/실제QA도구 a9dd971 완료. 현재HEAD c62339c5eadfa61ff61083912801aa79de383072(문서포인터).
+- T02 작업트리: provision-entra/set-entra-settings/entra-common/check-entra-env/verify-entra-registration 도구, infra/azure/entra.parameters.example.json, docs/entra-runbook.md, entra-provisioning.test.ts 구현. 아직실제SSO검증미완료라T02완료소스커밋없음.
+- 실제두Entra앱등록/Member acct/정확한redirect/최초Board.Admin·소유자윤일호만확인. prod client5fc11fd1-1c26-48b9-9cef-ea5785fffbb2, local395f9a9a-5abc-4534-8539-eb653bc956ff. tenant69c1e470-4528-435a-a1ae-de98e0aac738/adminoid e8222b20-96f4-4c25-a3af-1f40ebbbec56.
+- 각90일secret 만료2027-02-16 UTC/서로다른암호화키는Git무시 board/.deploy/entra-login.dpapi에사용자DPAPI로보관. 공개IDs/keyId/expiry는entra-resources.json. 기존LOCALAPPDATA/VibeBoard/azure-prod.dpapi불변. 비밀출력/argv/소스포함금지.
+- ARM인증5key만merge/다른설정readback보존확인. .env.local local5key만추가/수정, APP_ORIGIN3000보존, 양쪽AUTH_MODEmaintenance. 구운영코드77fe827는이key를사용하지않으므로아직콘텐츠보호전환전이다.
+- 운영: DEX7b1417d8-833d-4ba9-a5cd-d27c91a28b83 / rg-vibe-board-prod / app-vibe-board-prod-7b1417 / B1Linuxx1 / SQLBasic2GB / 기존privateBlob·SharedKeyOff·TLS1.2·soft7일. URL https://app-vibe-board-prod-7b1417.azurewebsites.net . health77fe827b4ca69cfc9a82cf79688133a1e72ba920정상.
+- 운영SQL수동SELECT: schema4/글1/이미지6(attached1,purged2,soft_deleted3)/occupied=charged71864. 기존운영자IP와현재118.235.73.99가달라최소단일rule board-118-235-73-99만추가후읽기성공. 다른방화벽/DB자료/SQLmigration/grants/mainpush미변경. 원본snapshot은최종전환직전다시취득해야한다.
+- schema5닫힌baseline: 고정Gitarchive source c62339c5eadfa61ff61083912801aa79de383072에서Linux검증/재빌드. board/.deploy/entra-schema5-maintenance/board.zip와release.json. SHA256 aa1eebf1a659fb5ee65a7202adb8844281146f69c3b7d1545d10d1964435fd4d/node24일치. 다른board.zip검증용을운영baseline으로혼용금지.
+- test:all 서비스81/API21/E2E28, PS강화AST·합성dotenv4개, type/lint/build/diff, 독립Linux패키지1성공. 자동테스트는격리SQL/Azurite/fakeOIDC만사용. .env.local/실제SSO/운영endpoint는자동테스트에서읽지않는다.
+- 실제사전SSO: SQL없는3200브라우저10분대기중사용자에게직접회사로그인/MFA를안내/비동기질문. 실제Member/Admin결과없이종료되어미완료다. 브라우저/3200은정리됨. token/claims/query/trace/HAR저장없음. 실제로컬/운영앱QA는아직0글/0이미지/0업로드세션이다.
+- 사용자3000/next-env의두.next/dev/types경로/루트.agents/.codeburn/AGENTS/README/zip/SQLite·Dockerpad보존. 새T02소스·메모리는미커밋작업트리로보존. Git원격main은96edfc50b2dae16b195d1b219d0fcd335c62f55d, push없음. gh는현재PATH에없으므로최종Task에서공식CLI/GCM-REST준비필요(PAT채팅요청금지).
 
 ## Next Step (IMPORTANT)
-P02-T01 source a9dd971 완료. done4/6(P01 3/3, P02 1/3). test:all서비스77/API21/E2E28,타입/lint/build/workflow/diff,Linux패키지1개검증성공. T02 blueprint를읽고운영현황/권한을재확인한뒤별도prod/local Entra앱·역할·90일secret/DPAPI·local설정·실제SSO사전검증·schema5maintenance기준ZIP을준비한다. 아직운영SQL/Azure/Entra/main변경없음. 현재board.zip은커밋전검증용(HEAD9a39006기준metadata)이므로운영기준ZIP으로사용금지; 소스a9dd971이커밋된뒤정확한commit으로재빌드해야한다. 사용자3000/next-env/루트도구보존. 실제회사로그인/MFA만사람이수행하며자동연속배포요청유지.
+사용자가로그인준비되면 cwd board에서 scripts/verify-entra-registration.ps1을다시실행하고열린회사로그인/MFA를직접완료하도록안내한다. 실제tenantMatches/member/admin=true와checks를받아야T02를done으로하고청사진지정commit/phase/current동기화후P02-T03을읽는다. 실제MFA미완료를성공으로꾸미거나SQL5/main배포로앞서가지않는다. 사용자요청한실제배포목표는유지한다. T02의안전한준비는완료했으며새source/artifact baseline/권한/별도secret은확보했다. 다음Task에서닫힌baseline→원본snapshot→migration5·grants→Actions/SHA→Entra enable→실제로컬3200/운영SSO·자체QA(총2글/3이미지/3세션한도)·정리순서다. schema4/anonymous롤백금지. 실제계정로그인/MFA만사람이수행한다.

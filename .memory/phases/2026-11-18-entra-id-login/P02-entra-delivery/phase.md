@@ -16,4 +16,6 @@
 ## Completion
 실제 로컬/운영 SSO·Admin·이미지·재시작·자체정리·닫힌 복구기준 검증 후 전체6/6 및 current completed로 동기화한다.
 
-- T01 source a9dd971: 全サービス77/API21/E2E28/type/lint/build/workflow/diff、独立LinuxZIP検証成功。実運用の設定変更なし。
+- T01 source a9dd971: 서비스77/API21/E2E28/type/lint/build/workflow/diff 및독립LinuxZIP검증성공. 당시운영설정변경없음.
+
+- T02 in_progress: 두Entra앱/최초관리자/별도DPAPI자격증명/maintenance설정/운영SQL4읽기/고정source기준ZIP준비완료. 실제회사SSO·MFA사전확인이미완료여서done처리·운영전환을보류한다.

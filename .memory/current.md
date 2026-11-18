@@ -4,10 +4,10 @@
 [자유 게시판 Entra ID 로그인](./plans/2026-11-18-entra-id-login.md)
 
 ## Active Phase
-[P01 인증과 서버 권한 기반](./phases/2026-11-18-entra-id-login/P01-auth-core/phase.md)
+[P02 화면과 실제 Entra 운영 전환](./phases/2026-11-18-entra-id-login/P02-entra-delivery/phase.md)
 
 ## Active Task
-[P01-T03 글·미디어·관리자 서버 권한 전환](./phases/2026-11-18-entra-id-login/P01-auth-core/T03-board-authorization.md)
+[P02-T01 로그인 화면과 계정 기반 작성·검증 도구](./phases/2026-11-18-entra-id-login/P02-entra-delivery/T01-identity-ui.md)
 
 ## Status
 - 사용자 추가 요청: 실제 서버 반영과 링크 제공까지 남은 Task를 순서대로 자동 연속 실행한다. 기반만 배포하지 않고 실제 Entra 로그인·게시판 권한·운영 검증까지 마친다. 실제 회사 로그인/MFA 단계는 자동 준비 후 사용자에게 안내한다.
@@ -23,4 +23,4 @@
 - 이전 [웹에디터/이미지 계획](./plans/2026-11-16-rich-editor-images.md)은completed7/7로보존했다. board/docs/entra-runbook.md는이계획실행시생성할예정이다.
 
 ## Next Step (IMPORTANT)
-P01-T02 완료b47774d. 현재done2/6(P01 2/3),서비스73/API21/type/lint/build통과. 새openid-client6.9.0/서명검증/PKCE/암호화flow/auth HTTP/fakeissuer를구현했고운영의존성audit0. 기존게시판API는여전히옛계약이며아직운영배포하지않았다. 사용자요청대로자동연속실행해T03을읽고모든글/이미지/업로드/관리자서버권한과DTO·fixture를전환한다. 소유권/역할은실제세션SQL에서확인한다. Source스테이징은Task지정파일만,사용자next-env/3000/도구/SQLite보존. 운영변경/mainpush는최종Task경계까지금지한다.
+P01-T03 완료8bc9c2b. done3/6(P01completed3/3). 서비스77/API21/typecheck/lint/diffcheck통과. P02-T01 blueprint에따라 페이지보호/사용자메뉴/비밀번호없는계정UI·전체E2E/Linux패키지·실제세션검증도구를완성한다. 아직운영SQL/Entra/Azure/main변경없음. 사용자의 실제배포요청까지자동연속진행하며 사용자next-env/3000/도구보존.

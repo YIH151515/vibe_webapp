@@ -62,9 +62,12 @@ export async function verifyLiveEntra(input:LiveEntraInput,deps:{context:Browser
  let primaryFailure=false,stage="browser-create";
  try{
   await page.goto(origin+"/posts/new");await expect(page.locator('input[type="password"],input[name="nickname"]')).toHaveCount(0);
+  stage="browser-fill-title-body";
   await page.getByRole("textbox",{name:/^제목/}).fill(prefix+" 본문");const body=page.getByRole("textbox",{name:/^본문/});await body.fill("서식 QA 한글");await body.press("ControlOrMeta+a");await page.getByRole("button",{name:"굵게",exact:true}).click();
   const png=await sharp({create:{width:40,height:20,channels:4,background:{r:40,g:80,b:180,alpha:0.5}}}).png().toBuffer();
+  stage="browser-select-image";
   await page.getByLabel("이미지 선택",{exact:true}).setInputFiles({name:"qa.png",mimeType:"image/png",buffer:png});
+  stage="browser-submit-post";
   await page.getByRole("button",{name:"글 등록",exact:true}).click();await expect(page).toHaveURL(/\/posts\/\d+$/,{timeout:60000});
   const id=Number(new URL(page.url()).pathname.split("/").pop());owned.add(id);console.log("OWN_QA_POST",id);await Promise.all(observations);assert.equal(issues.length,0);await reconcile();assert.equal(assets.size,1,"single-initial-image");
   stage="created-post-and-private-image";
@@ -105,7 +108,12 @@ export async function verifyLiveEntra(input:LiveEntraInput,deps:{context:Browser
    await page.getByRole("button",{name:"취소",exact:true}).click();
   }
   await remove(id);checks.push("admin/consent/delete");
- }catch{primaryFailure=true;console.error("LIVE_ENTRA_STAGE_FAILED",stage);}
+ }catch(error){
+  primaryFailure=true;console.error("LIVE_ENTRA_STAGE_FAILED",stage,error instanceof assert.AssertionError?"assertion":error instanceof Error&&error.name==="TimeoutError"?"timeout":"check-failed");
+  // Fixed booleans/counts only: never log browser text, URLs, claims or response bodies.
+  const current=new URL(page.url());
+  console.log("LIVE_ENTRA_SAFE_DIAGNOSTICS",JSON.stringify({onCreatePage:current.origin===origin&&current.pathname==="/posts/new",titleFields:await page.getByRole("textbox",{name:/^제목/}).count(),bodyFields:await page.getByRole("textbox",{name:/^본문/}).count(),editorStatus:(await call("/api/editor-config")).status(),sessionStatus:(await call("/api/auth/session")).status()}));
+ }
  finally{
   await Promise.all(observations);await reconcile();for(const id of [...owned]){try{await remove(id);}catch{issues.push("own-post-remains");}}
   for(const token of tokens){try{await call("/api/upload-sessions/current","DELETE",undefined,{Authorization:"Bearer "+token});}catch{}}

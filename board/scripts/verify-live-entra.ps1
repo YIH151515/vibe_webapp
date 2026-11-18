@@ -11,6 +11,8 @@ try {
     $start.WorkingDirectory=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
     foreach($argument in @('node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port','3200')){[void]$start.ArgumentList.Add($argument)}
     $start.Environment['APP_ORIGIN']=$url;$start.Environment['APP_VERSION']=$Commit;$start.Environment['AUTH_MODE']='entra'
+    # The real image QA needs the enabled editor even when the developer's .env disables it.
+    $start.Environment['EDITOR_FEATURE_ENABLED']='1'
     $start.UseShellExecute=$false;$start.CreateNoWindow=$true;$start.WindowStyle='Hidden'
     $start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
     $server=[Diagnostics.Process]::new();$server.StartInfo=$start;[void]$server.Start()

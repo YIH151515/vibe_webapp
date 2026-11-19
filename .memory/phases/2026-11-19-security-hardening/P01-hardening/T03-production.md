@@ -1,5 +1,5 @@
 # Task: T03 운영 반영 및 점검 종료
-## Status: pending
+## Status: in_progress
 ## Goal
 기본인증off실제main OIDC배포/SSO·CSP·iframe방어를증명하고보고서3건종료.
 ## Decision Summary

@@ -27,7 +27,7 @@ Task: T02-publishing-auth
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: 지정 fix(security) 커밋 이력 참조
+- commit: aed6df050b414891b157f61fdd8b8f6f258eaa0c
 
 ## Actual validation
 서비스86/타입/lint/PowerShell모의2개/실제Bicep컴파일성공. 실제운영ftp/scm모두false(readback), 다른AppSettings전체key/value불변. SQL/방화벽변경없음. 다음Task에서off상태실제OIDC배포검증.

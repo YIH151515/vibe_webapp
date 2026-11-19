@@ -88,6 +88,16 @@ resource app 'Microsoft.Web/sites@2023-12-01' = {
     }
   }
 }
+resource ftpPublishingPolicy 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-12-01' = {
+  parent: app
+  name: 'ftp'
+  properties: { allow: false }
+}
+resource scmPublishingPolicy 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-12-01' = {
+  parent: app
+  name: 'scm'
+  properties: { allow: false }
+}
 resource settings 'Microsoft.Web/sites/config@2023-12-01' = {
   parent: app
   name: 'appsettings'

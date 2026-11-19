@@ -32,7 +32,7 @@ Task: T03-production
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: 지정 deploy(security) 완료 커밋 참조
+- commit: 972064dbbc074f22ab1a07d03467eedfaa7a0a74
 
 ## Actual completion evidence
 실제 source083b0af7808a18feb178c665f7cd45067c7bd35a/main Actions44479404023 verify+deploy success/health200/Running/entra. 기본인증false재확인. 실제SSO·서식/미저장이미지preview·CSP위반0·parser/iframe차단·ownlogout/replay401·자료쓰기0. 최종artifact14508096968/node24/SHA25674a5f9d427f90d2b9729bb520d4f5a3bb7d6877b250ff12f40aeee11b4469a93 기준ZIP갱신. 사용자3000서버·next-env보존, own브라우저종료. 실제다른계정까지로그인한것은아니며해당회귀는격리검증범위다.

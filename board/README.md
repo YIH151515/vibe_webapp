@@ -127,3 +127,13 @@ SQL 드라이버는 Next.js `serverExternalPackages: ["mssql"]`로 Node에서 �
 이미지는 private Blob에 보관하며 게시된 글과 연결된 파일만 로그인한 사용자에게 앱의 `/api/images/{id}`로 제공합니다. 초안은 24시간 후 정리하고, 글에서 제거한 이미지는 즉시 공개를 중단한 뒤 outbox로 삭제를 재시도합니다. Azure soft delete 보존 7일 동안은 사용 용량에 계속 포함하며 보존 종료와 파일 부재를 확인한 뒤 반환합니다. 늦게 나타난 파일도 SQL에서 추적한 경로만 재확인하며 전체 컨테이너를 훑어 삭제하지 않습니다.
 
 `npm run media:cleanup -- --limit 100`은 삭제 대기 건수만 읽는 dry-run입니다. `--apply`를 명시해야 실제 정리가 실행됩니다. 운영자 CLI는 로컬 `.env.local`의 정확한 운영 SQL·Blob 설정과 Azure CLI 인증을 사용하므로 적용 전 대상 환경을 확인하세요. 자동 정리는 Azure Node 런타임에서 `MEDIA_CLEANUP_ENABLED=1`일 때만 10분 간격으로 실행합니다. 테스트는 운영 자격증명과 `.env.local`을 사용하지 않습니다. Azurite에는 soft delete가 없으므로 실제 CRUD는 Azurite로, 7일 보존·장애 회계는 fake clock으로 검증합니다.
+
+## 브라우저 보안 정책과 배포 인증
+
+HTML은 요청마다 새로운 nonce를 발급해 Next.js 스크립트를 허용하고 임의의 HTML 인라인 스크립트와 프레임 삽입을 차단합니다. production 스크립트에는 unsafe-inline/unsafe-eval을 허용하지 않습니다. 관리자 화면과 Tiptap 호환을 위한 인라인 CSS, 이미지 미리보기 blob:/data:는 별도로 허용합니다.
+
+공통 헤더는 HSTS·X-Frame-Options DENY·nosniff·Permissions-Policy를 포함합니다. 로그인 POST가 정상 Origin을 보내도록 공통 Referrer-Policy는 strict-origin-when-cross-origin이고, 인증 콜백 경로만 no-referrer로 쿼리 정보를 보호합니다. 새 외부 스크립트나 iframe을 추가할 때는 CSP 회귀를 함께 확인하세요.
+
+SCM/FTP 배포 기본 인증을 끄고 Entra/OIDC 배포를 사용합니다. `./scripts/harden-publishing.ps1 -Mode Inspect` 또는 Verify로 두 정책을 조회할 수 있습니다. 실제 main 배포와 회사 계정 브라우저 재검증을 완료했습니다. 자세한 근거와 최종 결과는 [보안 점검 보고서](docs/security-review-2026-11-19.md)에 기록합니다.
+
+보안 수정 실제 실행 source: 083b0af7808a18feb178c665f7cd45067c7bd35a / Actions44479404023 success. SQL5·AUTH_MODEentra·기존 자료와 비용 등급을 유지했다. 최종 복구 ZIP SHA256: 74a5f9d427f90d2b9729bb520d4f5a3bb7d6877b250ff12f40aeee11b4469a93. 상세 검증 범위와 예외는 보안 점검 보고서를 따른다.

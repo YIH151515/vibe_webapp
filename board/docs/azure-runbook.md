@@ -118,3 +118,11 @@ T02와 T03의 실제 설정·공개 배포 검증을 완료했다. 이후 README
 SQL5 전환 후 복구는 `AUTH_MODE=maintenance`에서 검증한 `.deploy/entra-schema5-maintenance/board.zip`과 release.json을 사용한다. manifest의 commit/node24/SHA256과 실제 ZIP을 대조하고 APP_VERSION 및 health를 확인한다. 과거 schema3/4 또는 익명 접근 ZIP으로 복구하지 않는다. DB 역migration이나 운영 자료 초기화 없이 닫힌 상태에서 수정한다. 최종 main Actions 성공 뒤 그 실제 패키지로 기준 ZIP을 갱신하고 준비 패키지도 보존한다.
 
 현재 비용은 Azure Portal → 구독 DEX → Cost Management → Cost analysis에서 RG rg-vibe-board-prod 필터로 확인한다. 월50,000원은 목표이며 강제 지출 차단이 아니다. SKU/인스턴스/백업 변경 전 비용을 다시 확인한다.
+
+## 보안 수정 배포 — 2026-11-19
+
+SCM과 FTP basicPublishingCredentialsPolicies를 모두 false로 적용하고 실제 ARM readback을 확인했다. 앱 설정 전체 key/value를 비교해 SQL/Blob/Entra/APP_VERSION 등 기존 설정이 유지됐음을 확인했다. 기본 인증 차단 상태의 main OIDC 배포와 실제 운영 브라우저 재검증을 완료했다. FTPS Disabled와 TLS1.2를 유지하며 배포 오류를 기본 인증 재활성화로 해결하지 않는다.
+
+인프라 선언에도 두 false 정책이 포함됐다. 현재 Entra 운영에서는 전체 provision Apply 대신 정확한 정책만 다루는 harden-publishing.ps1을 사용한다. Inspect/Verify는 읽기만 하고 Apply는 ftp→scm 비활성화 후 재조회한다. SQL이나 방화벽을 변경하지 않는다. 브라우저 CSP nonce, Referrer 예외와 운영 검증 절차는 Entra 운영 안내와 보안 점검 보고서를 따른다.
+
+보안 수정 실제 실행 source: 083b0af7808a18feb178c665f7cd45067c7bd35a / Actions44479404023 success. SQL5·AUTH_MODEentra·기존 자료와 비용 등급을 유지했다. 최종 복구 ZIP SHA256: 74a5f9d427f90d2b9729bb520d4f5a3bb7d6877b250ff12f40aeee11b4469a93. 상세 검증 범위와 예외는 보안 점검 보고서를 따른다.

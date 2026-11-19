@@ -176,3 +176,15 @@ AUTH_ENCRYPTION_KEY 교체 시 진행 중인 최대10분 로그인 flow는 재�
 자동검사는 최신 main에서 서비스/API/E2E 전체와 typecheck/lint/workflow/Linux ZIP을 통과했다. 실제 일반Member·Guest·다른tenant·타owner 계정은 추가로 로그인하지 않았으며, 해당 권한과 악성 OIDC 입력은 격리SQL/가짜서명issuer 테스트로 검증했다. 긴 표시이름256자는 합성화면으로 검증했고 실제 계정 이름을 변경하지 않았다.
 
 삭제된 QA 이미지는 즉시 접근이 차단되지만 Blob soft delete7일과 용량보류가 남는다. 이를 물리 완전삭제로 해석하지 않는다. 실제 배포source와 뒤따르는 docs/.memory 완료커밋의 SHA는 다를 수 있으며 완료문서 변경은 배포를 다시 실행하지 않는다.
+
+## 보안 정책 유지 — 2026-11-19 수정 작업
+
+SCM/FTP 배포 기본 인증은 `harden-publishing.ps1 -Mode Apply`로 두 정책만 false로 바꾸고 Verify로 재조회한다. Inspect/Verify는 읽기만 한다. 기존 Entra/SQL/Blob 설정을 초기화하거나 전체 인프라 Apply로 우회하지 않는다. 비상 배포도 Entra/OIDC 경로를 사용하며 기본 인증을 다시 켜지 않는다. 실제 main 배포·회사 계정 브라우저 재검증을 완료했다.
+
+HTML의 CSP nonce는 요청마다 생성하는32바이트 난수이며 인증 암호화키나 로그인 쿠키와 별개다. 외부 x-nonce와 CSP 헤더를 신뢰하지 않고 서버에서 덮어쓴다. 스크립트는 nonce/strict-dynamic으로 제어하고 production unsafe-inline/unsafe-eval은 허용하지 않는다. style-src의 unsafe-inline만 기존 React 관리자 스타일·Tiptap 편집 스타일 호환을 위해 허용한다. 이미지 미리보기의 blob:/data:와 서버 이미지 경로를 유지한다.
+
+form-action은 self와 정확한 Microsoft 로그인 origin을 허용한다. 공통 Referrer-Policy는 strict-origin-when-cross-origin으로 정상 로그인 POST의 Origin을 유지하고, /api/auth 경로에는 별도 no-referrer를 적용해 콜백 쿼리를 보호한다. Next의 전역 headers가 route 응답보다 우선할 수 있으므로 이 예외를 삭제하지 않는다. CSP를 임의의 unsafe-inline 스크립트나 wildcard로 바꿔 로그인 문제를 해결하지 않는다.
+
+프레임 삽입은 frame-ancestors none/X-Frame-Options DENY로 차단한다. HSTS max-age31536000은 본 앱 HTTPS 호스트에 적용하며 공유 Azure 상위도메인의 preload를 변경하지 않는다. 오류·로그인·점검 화면과 API에도 공통 방어 헤더를 적용한다. 새로운 외부 스크립트·iframe·폼 전송 기능은 정확한 허용 출처와 실제 CSP 회귀를 함께 검토한다.
+
+보안 수정 실제 실행 source: 083b0af7808a18feb178c665f7cd45067c7bd35a / Actions44479404023 success. SQL5·AUTH_MODEentra·기존 자료와 비용 등급을 유지했다. 최종 복구 ZIP SHA256: 74a5f9d427f90d2b9729bb520d4f5a3bb7d6877b250ff12f40aeee11b4469a93. 상세 검증 범위와 예외는 보안 점검 보고서를 따른다.

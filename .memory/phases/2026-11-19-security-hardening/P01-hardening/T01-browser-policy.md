@@ -30,7 +30,7 @@ Task: T01-browser-policy
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: 지정 fix(security) 커밋 이력 참조
+- commit: e6af04c545aee350f09b920afad36a6e8d6dbcf7
 
 ## Actual validation
 test:all31172 exit0 service84/API21/E2E29; 최신nativebuild/type/lint57567 exit0; LinuxproductionZIP29716 exit0(브라우저parser차단/RSC런타임/정상OriginPOST/외부iframe차단); workflow/diff검사성공. 임시3200종료/user3000·next-env dev경로보존.

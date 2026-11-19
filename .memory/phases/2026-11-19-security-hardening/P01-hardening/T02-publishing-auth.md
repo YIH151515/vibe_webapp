@@ -1,5 +1,5 @@
 # Task: T02 배포 기본 인증 차단
-## Status: pending
+## Status: in_progress
 ## Goal
 F01 SCM/FTP기본인증을실제운영과인프라선언에서끄기.
 ## Decision Summary

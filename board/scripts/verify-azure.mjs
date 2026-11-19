@@ -20,7 +20,7 @@ export async function verifyAzure() {
     const commit = execFileSync("git", ["-c", "safe.directory=D:/vibeweb", "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     // Keep dependency/build writes on Docker's Linux filesystem; exchange only source and final ZIP.
     await run(["run", "--name", name, "--rm", "--mount", `type=bind,source=${temp},target=/exchange`, "-e", "RELEASE_COMMIT=" + commit, "node:24-bookworm", "bash", "-euc",
-      "mkdir /work; cp -a /exchange/. /work/; cd /work; npm ci --no-audit --no-fund; npm run build:azure; npm run package:azure; node --test tests/package.test.mjs; mkdir /exchange/.deploy; cp .deploy/board.zip .deploy/release.json /exchange/.deploy/"]);
+      "mkdir /work; cp -a /exchange/. /work/; cd /work; npm ci --no-audit --no-fund; npx playwright install --with-deps chromium; npm run build:azure; npm run package:azure; node --test tests/package.test.mjs; mkdir /exchange/.deploy; cp .deploy/board.zip .deploy/release.json /exchange/.deploy/"]);
     await mkdir(".deploy", { recursive: true });
     for (const item of ["board.zip", "release.json"]) await cp(join(temp, ".deploy", item), resolve(".deploy", item));
   } finally {

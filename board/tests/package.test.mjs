@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { createServer } from "node:net";
 import { once } from "node:events";
+import { chromium } from "@playwright/test";
 
 test("release ZIP runs independently, serves assets and fails health safely without SQL", { timeout: 60000 }, async () => {
   const zip = resolve(".deploy/board.zip");
@@ -50,6 +51,39 @@ test("release ZIP runs independently, serves assets and fails health safely with
     }
     assert.equal(response?.status, 200);
     const html = await response.text();
+    const csp=response.headers.get("content-security-policy"),nonce=/nonce-([^']+)/.exec(csp)[1];
+    assert.ok(!csp.includes("unsafe-eval"));
+    assert.ok(csp.includes("frame-ancestors 'none'"));
+    assert.equal(response.headers.get("x-frame-options"),"DENY");
+    assert.equal(response.headers.get("strict-transport-security"),"max-age=31536000");
+    for(const script of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)){
+      if(script[1].includes('type="application/ld+json"'))continue;
+      assert.ok(script[1].includes('nonce="'+nonce+'"'),"production-script-nonce");
+    }
+    const browser=await chromium.launch({headless:true});
+    try{
+      const context=await browser.newContext({serviceWorkers:"block"}),page=await context.newPage();
+      await page.route(base+"/login",async route=>{const response=await route.fetch();const body=(await response.text()).replace("</head>","<script>window.__untrustedParserScript=1</script></head>");await route.fulfill({response,body});},{times:1});
+      await page.goto(base+"/login");
+      await page.unrouteAll({behavior:"wait"});
+      assert.equal(await page.evaluate(()=>window.__untrustedParserScript),undefined);
+      // The SQL-free maintenance login button is intentionally disabled. A Next Link
+      // client navigation (RSC request) proves real hydration without any credentials.
+      const clicked=page.waitForRequest(r=>new URL(r.url()).origin===base&&new URL(r.url()).pathname==="/"&&r.headers().rsc==="1");
+      await page.locator("a.brand").click();await clicked;
+      const formPage=await context.newPage();await formPage.goto(base+"/login");
+      // A native POST must retain Origin; global no-referrer would make it null
+      // and break the real login's strict CSRF check. Never send this stub to SQL.
+      let postOrigin;
+      await formPage.route(base+"/api/auth/login",async route=>{postOrigin=route.request().headers().origin;await route.fulfill({status:400,body:"synthetic-form-check"});},{times:1});
+      const submitted=formPage.waitForResponse(r=>r.url()===base+"/api/auth/login"&&r.request().method()==="POST");
+      await formPage.evaluate(()=>{const form=document.createElement("form");form.method="POST";form.action="/api/auth/login";document.body.append(form);form.requestSubmit();});
+      await submitted;await formPage.unrouteAll({behavior:"wait"});assert.equal(postOrigin,base,"native-login-post-origin");
+      const embedding=await context.newPage(),framed=embedding.waitForResponse(r=>r.url()===base+"/login");
+      await embedding.setContent('<iframe src="'+base+'/login"></iframe>');await framed;
+      assert.equal(await embedding.frameLocator("iframe").getByRole("button",{name:"회사 계정으로 로그인"}).count(),0);
+      await embedding.close();
+    }finally{await browser.close();}
     const css = html.match(/href="([^" ]+\.css(?:\?[^" ]*)?)"/);
     assert.ok(css); assert.equal((await fetch(new URL(css[1].replaceAll("&amp;", "&"), base))).status, 200);
     const health = await fetch(base + "/api/health");
